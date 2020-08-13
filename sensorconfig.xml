@@ -1,0 +1,10 @@
+<sensors>
+    <sensor>
+        <type>camera</type>
+        <parameters vendor="dummy" camid="dummycam1" beam="incoming" roiparams="(100,200,150,150)"></parameters>
+    </sensor>
+    <sensor>
+        <type>camera</type>
+        <parameters vendor="dummy" camid="dummycam1" beam="outcoming" roiparams="(100,300,150,150)"></parameters>
+    </sensor>
+</sensors>

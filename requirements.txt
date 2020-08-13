@@ -1,0 +1,9 @@
+numpy
+scipy
+influxdb
+plotly
+pandas
+dash_core_components
+dash_html_components
+dash_bootstrap_components
+dash_daq
