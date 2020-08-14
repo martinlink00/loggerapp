@@ -178,10 +178,12 @@ class Temperature(Exporter):
          
         
 class Sensormanager:
-    """This class reads the config file 'sensorconfig.txt' and initiates all sensors"""
+    """This class reads the config file 'sensorconfig.xml' and initiates all sensors."""
     def __init__(self):
         
-        self._connectedcams=self._initiatecamlist()
+        self._camtypes=self._initiatecamlist()
+        
+        self._connectedcams=self._connectedcams()
         
         self._connectedtemp=self._initiatetemplist()
         
@@ -190,10 +192,10 @@ class Sensormanager:
         self._connectedcamexp=self._initiatecamexpdict()
         
         self._sensorlist=self._initiatesensorlist()
-                        
+        
     
     def _initiatecamlist(self):
-        """Finds and connects to all available camera vendors and returns a list of said camtypes."""
+        """Finds and initiates all available camera vendors and returns a list of said camtypes."""
         cameras = []
         dummycam = cam.DummyCamera()
         cameras.append(dummycam)
@@ -220,6 +222,15 @@ class Sensormanager:
         return cameras
         
         
+    def _connectedcams(self):
+        """Finds all connected cameras, and returns list of tuples (vendor,camid)."""
+        mangr=cam.CameraManager(self._camtypes)
+        a=mangr.connectedcams
+        b=[]
+        for i in a.keys():
+            for j in a[i].keys():
+                b.append((i,j))
+        return b
         
     
     
@@ -272,7 +283,7 @@ class Sensormanager:
             elif r['type']=='temperature':
                 r['tempid']=att['tempid'].value
                 r['handle']=att['handle'].value
-            paramlist.append(r) 
+            paramlist.append(r)
         return paramlist
     
     
@@ -282,7 +293,7 @@ class Sensormanager:
         for pardic in self._paramlist:
             if pardic['type']=='camera':
                 if not (pardic['vendor'],pardic['camid']) in camexps.keys():
-                    camexps[(pardic['vendor'],pardic['camid'])] = Camexp(pardic['vendor'],pardic['camid'],self._connectedcams)
+                    camexps[(pardic['vendor'],pardic['camid'])] = Camexp(pardic['vendor'],pardic['camid'],self._camtypes)
         return camexps
     
     
@@ -321,3 +332,22 @@ class Sensormanager:
     def getsensorlist(self):
         return self._sensorlist
             
+    
+    def configsyncbool(self):
+        """Returns True if the config file specifies all connected cameras."""
+        current=[]
+        for par in self._paramlist:
+            if par["type"]=="camera":
+                tup = (par["vendor"],par["camid"])
+                current.append(tup)
+            if par["type"]=="temperature":
+                current.append(par["handle"])
+        for conn in self._connectedcams:
+            if not conn in current:
+                return False
+        if not self._connectedtemp is None:
+            for temp in self._connectedtemp:
+                if not temp in current:
+                    return False
+
+        return True
