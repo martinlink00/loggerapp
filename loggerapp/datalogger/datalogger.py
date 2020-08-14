@@ -7,6 +7,7 @@ import datalogger.analyser as analyser
 import datalogger.cameras as cam
 from datalogger.logsetup import log
 from xml.dom import minidom
+import xml.etree.ElementTree
 import ctypes
 
 
@@ -189,9 +190,15 @@ class Sensormanager:
         
         self._paramlist=self._paramfromfile()
         
+        self._tobeconfigured=self._getmissingsensors()
+        
+        if len(self._tobeconfigured)!=0:
+            pass
+        
         self._connectedcamexp=self._initiatecamexpdict()
         
         self._sensorlist=self._initiatesensorlist()
+        
         
     
     def _initiatecamlist(self):
@@ -333,21 +340,42 @@ class Sensormanager:
         return self._sensorlist
             
     
-    def configsyncbool(self):
-        """Returns True if the config file specifies all connected cameras."""
+                         
+    
+    def _getmissingsensors(self):
+        """Get all connected sensors, which are not specified in sensorconfig.xml"""
         current=[]
+        missing=[]
         for par in self._paramlist:
             if par["type"]=="camera":
                 tup = (par["vendor"],par["camid"])
                 current.append(tup)
             if par["type"]=="temperature":
                 current.append(par["handle"])
-        for conn in self._connectedcams:
-            if not conn in current:
-                return False
+        for cam in self._connectedcams:
+            if not cam in current:
+                missing.append(cam)
         if not self._connectedtemp is None:
             for temp in self._connectedtemp:
                 if not temp in current:
-                    return False
-
-        return True
+                    missing.append(temp)
+        return missing
+        
+        
+    def _addcamerasensortoxml(self,vendor,camid,beam,roiparams):
+        """Edits sensorconfig.xml to add a sensor with the specified params."""
+        f=open('sensorconfig.xml','w')
+        et = ET.parse('sensorconfig.xml')
+        new_sensor_tag = ET.SubElement(et.getroot(), 'sensor')
+        type_tag = ET.SubElement(new_sensor_tag, 'type')
+        type_tag.text = "camera"
+        param_tag = ET.SubElement(new_sensor_tag, 'parameters')
+        param_tag.attrib = {'vendor':vendor,'camid':camid,'beam':beam,'roiparams':roiparams}
+        rough_string = ET.tostring(et.getroot(), 'utf-8')
+        rough_string = rough_string.replace(b"\n",b"")
+        rough_string = rough_string.replace(b"\t",b"")
+        rough_string = rough_string.replace(b"  ",b"")
+        reparsed = minidom.parseString(rough_string)
+        new_string = reparsed.toprettyxml(indent="\t")
+        f.write(new_string)
+        f.close()
