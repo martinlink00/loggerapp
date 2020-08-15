@@ -7,7 +7,7 @@ import datalogger.analyser as analyser
 import datalogger.cameras as cam
 from datalogger.logsetup import log
 from xml.dom import minidom
-import xml.etree.ElementTree
+import xml.etree.ElementTree as ET
 import ctypes
 
 
@@ -193,7 +193,35 @@ class Sensormanager:
         self._tobeconfigured=self._getmissingsensors()
         
         if len(self._tobeconfigured)!=0:
-            pass
+            #Rewrite sensorxml file
+            for miss in self._tobeconfigured:
+                if type(miss) is tuple:
+                    log.info("The connected camera %s %s is not yet configured in sensorconfig.xml." % miss)
+                    configurenow=input("Configure %s %s now? (y/n) "% miss)
+                    if configurenow=="y":
+                        nobeams=input("How many beams are tracked with this camera? ")
+                        try:
+                            beamlist=range(int(nobeams))
+                        except:
+                            log.error("Bad input. Config process stopped.")
+                            break
+                        
+                        for beam in beamlist:
+                            beamname=input("What name should beam number %i be logged as? " % (beam+1))
+                            self._addcamerasensortoxml(miss[0],miss[1],beamname,"(0,0,100,100)")
+                if type(miss) is str:
+                    log.info("The connected temperature sensor %s is not yet configured in sensorconfig.xml." % miss)
+                    configurenow=input("Configure %s now? (y/n) " % miss)
+                    if configurenow=="y":
+                        tempid=input("What name should this sensor be logged as? ")
+                        self._addtempsensortoxml(tempid,miss)
+            
+            #Reread edited xml file
+            self._paramlist=self._paramfromfile()
+            self._tobeconfigured=[]
+                    
+            
+                        
         
         self._connectedcamexp=self._initiatecamexpdict()
         
@@ -363,8 +391,7 @@ class Sensormanager:
         
         
     def _addcamerasensortoxml(self,vendor,camid,beam,roiparams):
-        """Edits sensorconfig.xml to add a sensor with the specified params."""
-        f=open('sensorconfig.xml','w')
+        """Edits sensorconfig.xml to add a camera with the specified params."""
         et = ET.parse('sensorconfig.xml')
         new_sensor_tag = ET.SubElement(et.getroot(), 'sensor')
         type_tag = ET.SubElement(new_sensor_tag, 'type')
@@ -377,5 +404,25 @@ class Sensormanager:
         rough_string = rough_string.replace(b"  ",b"")
         reparsed = minidom.parseString(rough_string)
         new_string = reparsed.toprettyxml(indent="\t")
+        f=open('sensorconfig.xml','w')
         f.write(new_string)
         f.close()
+        
+    def _addtempsensortoxml(self,tempid,handle):
+        """Edits sensorconfig.xml to add a temperature sensor with the specified params."""
+        et = ET.parse('sensorconfig.xml')
+        new_sensor_tag = ET.SubElement(et.getroot(), 'sensor')
+        type_tag = ET.SubElement(new_sensor_tag, 'type')
+        type_tag.text = "temperature"
+        param_tag = ET.SubElement(new_sensor_tag, 'parameters')
+        param_tag.attrib = {'tempid':tempid,'handle':handle}
+        rough_string = ET.tostring(et.getroot(), 'utf-8')
+        rough_string = rough_string.replace(b"\n",b"")
+        rough_string = rough_string.replace(b"\t",b"")
+        rough_string = rough_string.replace(b"  ",b"")
+        reparsed = minidom.parseString(rough_string)
+        new_string = reparsed.toprettyxml(indent="\t")
+        f=open('sensorconfig.xml','w')
+        f.write(new_string)
+        f.close()
+        
