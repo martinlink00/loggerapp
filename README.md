@@ -33,10 +33,13 @@ LOGGERAPP README
         - Open a command prompt and change the directory to where the program was copied
         - Run "pip install -r requirements.txt"
     2. Initiate Sensors
-        - Include all sensors including their initial parameters in the "sensorconfig.xml" file.
-        - For camera sensors, include the parameters 'vendor', 'camid' (both used to find and connect to the camera) and 'beam' (used to distinguish between multiple beams on one camera) as well as the desired initial 'roiparams' in the format '(x-Position,y-Position,width,height)' (in pixels). The Roiparams do not need to be very exact, as the program will automatically reset the ROI anyways.
-        - For temperature sensors, include the parameter 'handle' used by the DLL to connect to each temperature sensor as well as 'tempid', a name that will be used for this specific device in the database.
-        
+        - All sensors are configured via the sensorconfig.xml file. When the program encounters a connected sensor, which is not mentioned in the config file, it will offer to automatically edit the xml file via inputs from the command prompt. Thus it is not necessary to manually edit the xml file for each new connected sensor.
+        - For automatic xml file editing:
+            - Connect all new sensors and run program
+            - Follow the instructions in the command line
+        - For manually editing the xml file:
+            - For camera sensors, include the parameters 'vendor', 'camid' (both used to find and connect to the camera) and 'beam' (used to distinguish between multiple beams on one camera) as well as the desired initial 'roiparams' in the format '(x-Position,y-Position,width,height)' (in pixels). The Roiparams do not need to be very exact, as the program will automatically reset the ROI anyways.
+            - For temperature sensors, include the parameter 'handle' used by the DLL to connect to each temperature sensor as well as 'tempid', a name that will be used for this specific device in the database.
 
     
     
@@ -47,4 +50,7 @@ LOGGERAPP README
     - Run 'python run.py' 
     - You should see an output of the type "Running on https://IP:Port"
     - Open a browser window and copy-paste the adress
+ 
+
+
  

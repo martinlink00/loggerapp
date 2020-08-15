@@ -7,6 +7,7 @@ import datalogger.analyser as analyser
 import datalogger.cameras as cam
 from datalogger.logsetup import log
 from xml.dom import minidom
+import xml.etree.ElementTree as ET
 import ctypes
 
 
@@ -178,22 +179,58 @@ class Temperature(Exporter):
          
         
 class Sensormanager:
-    """This class reads the config file 'sensorconfig.txt' and initiates all sensors"""
+    """This class reads the config file 'sensorconfig.xml' and initiates all sensors."""
     def __init__(self):
         
-        self._connectedcams=self._initiatecamlist()
+        self._camtypes=self._initiatecamlist()
+        
+        self._connectedcams=self._connectedcams()
         
         self._connectedtemp=self._initiatetemplist()
         
         self._paramlist=self._paramfromfile()
         
+        self._tobeconfigured=self._getmissingsensors()
+        
+        if len(self._tobeconfigured)!=0:
+            #Rewrite sensorxml file
+            for miss in self._tobeconfigured:
+                if type(miss) is tuple:
+                    log.info("The connected camera %s %s is not yet configured in sensorconfig.xml." % miss)
+                    configurenow=input("Configure %s %s now? (y/n) "% miss)
+                    if configurenow=="y":
+                        nobeams=input("How many beams are tracked with this camera? ")
+                        try:
+                            beamlist=range(int(nobeams))
+                        except:
+                            log.error("Bad input. Config process stopped.")
+                            break
+                        
+                        for beam in beamlist:
+                            beamname=input("What name should beam number %i be logged as? " % (beam+1))
+                            self._addcamerasensortoxml(miss[0],miss[1],beamname,"(0,0,100,100)")
+                if type(miss) is str:
+                    log.info("The connected temperature sensor %s is not yet configured in sensorconfig.xml." % miss)
+                    configurenow=input("Configure %s now? (y/n) " % miss)
+                    if configurenow=="y":
+                        tempid=input("What name should this sensor be logged as? ")
+                        self._addtempsensortoxml(tempid,miss)
+            
+            #Reread edited xml file
+            self._paramlist=self._paramfromfile()
+            self._tobeconfigured=[]
+                    
+            
+                        
+        
         self._connectedcamexp=self._initiatecamexpdict()
         
         self._sensorlist=self._initiatesensorlist()
-                        
+        
+        
     
     def _initiatecamlist(self):
-        """Finds and connects to all available camera vendors and returns a list of said camtypes."""
+        """Finds and initiates all available camera vendors and returns a list of said camtypes."""
         cameras = []
         dummycam = cam.DummyCamera()
         cameras.append(dummycam)
@@ -220,6 +257,15 @@ class Sensormanager:
         return cameras
         
         
+    def _connectedcams(self):
+        """Finds all connected cameras, and returns list of tuples (vendor,camid)."""
+        mangr=cam.CameraManager(self._camtypes)
+        a=mangr.connectedcams
+        b=[]
+        for i in a.keys():
+            for j in a[i].keys():
+                b.append((i,j))
+        return b
         
     
     
@@ -272,7 +318,7 @@ class Sensormanager:
             elif r['type']=='temperature':
                 r['tempid']=att['tempid'].value
                 r['handle']=att['handle'].value
-            paramlist.append(r) 
+            paramlist.append(r)
         return paramlist
     
     
@@ -282,7 +328,7 @@ class Sensormanager:
         for pardic in self._paramlist:
             if pardic['type']=='camera':
                 if not (pardic['vendor'],pardic['camid']) in camexps.keys():
-                    camexps[(pardic['vendor'],pardic['camid'])] = Camexp(pardic['vendor'],pardic['camid'],self._connectedcams)
+                    camexps[(pardic['vendor'],pardic['camid'])] = Camexp(pardic['vendor'],pardic['camid'],self._camtypes)
         return camexps
     
     
@@ -321,3 +367,62 @@ class Sensormanager:
     def getsensorlist(self):
         return self._sensorlist
             
+    
+                         
+    
+    def _getmissingsensors(self):
+        """Get all connected sensors, which are not specified in sensorconfig.xml"""
+        current=[]
+        missing=[]
+        for par in self._paramlist:
+            if par["type"]=="camera":
+                tup = (par["vendor"],par["camid"])
+                current.append(tup)
+            if par["type"]=="temperature":
+                current.append(par["handle"])
+        for cam in self._connectedcams:
+            if not cam in current:
+                missing.append(cam)
+        if not self._connectedtemp is None:
+            for temp in self._connectedtemp:
+                if not temp in current:
+                    missing.append(temp)
+        return missing
+        
+        
+    def _addcamerasensortoxml(self,vendor,camid,beam,roiparams):
+        """Edits sensorconfig.xml to add a camera with the specified params."""
+        et = ET.parse('sensorconfig.xml')
+        new_sensor_tag = ET.SubElement(et.getroot(), 'sensor')
+        type_tag = ET.SubElement(new_sensor_tag, 'type')
+        type_tag.text = "camera"
+        param_tag = ET.SubElement(new_sensor_tag, 'parameters')
+        param_tag.attrib = {'vendor':vendor,'camid':camid,'beam':beam,'roiparams':roiparams}
+        rough_string = ET.tostring(et.getroot(), 'utf-8')
+        rough_string = rough_string.replace(b"\n",b"")
+        rough_string = rough_string.replace(b"\t",b"")
+        rough_string = rough_string.replace(b"  ",b"")
+        reparsed = minidom.parseString(rough_string)
+        new_string = reparsed.toprettyxml(indent="\t")
+        f=open('sensorconfig.xml','w')
+        f.write(new_string)
+        f.close()
+        
+    def _addtempsensortoxml(self,tempid,handle):
+        """Edits sensorconfig.xml to add a temperature sensor with the specified params."""
+        et = ET.parse('sensorconfig.xml')
+        new_sensor_tag = ET.SubElement(et.getroot(), 'sensor')
+        type_tag = ET.SubElement(new_sensor_tag, 'type')
+        type_tag.text = "temperature"
+        param_tag = ET.SubElement(new_sensor_tag, 'parameters')
+        param_tag.attrib = {'tempid':tempid,'handle':handle}
+        rough_string = ET.tostring(et.getroot(), 'utf-8')
+        rough_string = rough_string.replace(b"\n",b"")
+        rough_string = rough_string.replace(b"\t",b"")
+        rough_string = rough_string.replace(b"  ",b"")
+        reparsed = minidom.parseString(rough_string)
+        new_string = reparsed.toprettyxml(indent="\t")
+        f=open('sensorconfig.xml','w')
+        f.write(new_string)
+        f.close()
+        
