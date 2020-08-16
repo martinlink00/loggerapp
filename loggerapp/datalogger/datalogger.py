@@ -5,6 +5,7 @@
 
 import datalogger.analyser as analyser
 import datalogger.cameras as cam
+import datalogger.trigger as trig
 from datalogger.logsetup import log
 from xml.dom import minidom
 import xml.etree.ElementTree as ET
@@ -16,8 +17,9 @@ import ctypes
 
 class Exporter:
     """Abstract Exporter class, capable of exporting data to influx format"""
-    def __init__(self,type,sensor):
+    def __init__(self,type,sensor,trigger):
         self.type=type
+        self.trigger=trigger
         self.sensor=sensor
         
         
@@ -78,10 +80,10 @@ class Camexp:
     
 class Beam(Exporter):
     """Class for beam sensors, which have their own ROI settings and fit output datas"""
-    def __init__(self,cam,beam,roiparams):
+    def __init__(self,cam,beam,roiparams,trigger):
             self._cam=cam
             tpe=self._cam.camstr() + " " + str(beam)
-            super(Beam, self).__init__("camera",tpe)
+            super(Beam, self).__init__("camera",tpe,trigger)
             self.latestimage=None
             self.latestroi=None
             self.latestroiparams=None
@@ -147,9 +149,9 @@ class Beam(Exporter):
     
 class Temperature(Exporter):
     """Class for temperature sensors"""
-    def __init__(self,dll,handle,tempid,tempsensors):
+    def __init__(self,dll,handle,tempid,tempsensors,trigger):
         if handle in tempsensors:
-            super(Temperature, self).__init__("temperature",str(tempid))
+            super(Temperature, self).__init__("temperature",str(tempid),trigger)
             self._dll=dll
             self._handle=handle
         else:
@@ -339,9 +341,9 @@ class Sensormanager:
         for par in self._paramlist:
             if par['type']=='camera':
                 roipar=eval(par['roiparams'])
-                ret.append(Beam(self._connectedcamexp[(par['vendor'],par['camid'])],par['beam'],roipar))
+                ret.append(Beam(self._connectedcamexp[(par['vendor'],par['camid'])],par['beam'],roipar,trig.PeriodicTrigger(8.0)))
             if par['type']=='temperature':
-                ret.append(Temperature(ctypes.windll.LoadLibrary('usbtc08.dll'),par['handle'],par['tempid'],self._connectedtemp))  
+                ret.append(Temperature(ctypes.windll.LoadLibrary('usbtc08.dll'),par['handle'],par['tempid'],self._connectedtemp,trig.PeriodicTrigger(8.0)))  
         return ret
     
         
@@ -425,4 +427,3 @@ class Sensormanager:
         f=open('sensorconfig.xml','w')
         f.write(new_string)
         f.close()
-        
