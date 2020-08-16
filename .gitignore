@@ -1,9 +1,4 @@
-
-*.ipynb_checkpoints
-*/.ipynb_checkpoints/*
-*.html
-*.log
-*.ipynb
-*.pyc
-
-
+ # Ignore everything in this directory
+*
+# Except this file
+!.gitignore
