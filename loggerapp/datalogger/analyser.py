@@ -358,7 +358,7 @@ class ImageAnalyser(object):
 
             
         try:
-            fitres3 = opt.leastsq(self._gaussfitdiff, (self.roiimgwidth / 10 * 100, self.roiimgwidth / 2, self.roiimgwidth / 10, self.imageoffset * self.roiimgheight), args=(yy, self.longroiprof))
+            fitres3 = opt.leastsq(self._gaussfitdiff, (self.roiimgheight / 10 * 100, self.roiimgheight / 2, self.roiimgheight / 10, self.imageoffset * self.roiimgwidth), args=(yy, self.longroiprof))
             self._sfitparams = fitres3[0]
         except:
             log.debug("SFIT Error")
