@@ -192,6 +192,20 @@ class Sensormanager:
         
         self._tobeconfigured=self._getmissingsensors()
         
+        self._overlyconfigured=self._getnonconnectedsensors()
+        
+        if len(self._overlyconfigured)!=0:
+            for ov in self._overlyconfigured:
+                if type(ov) is tuple:
+                    log.info("The connected camera %s %s is mentioned in sensorconfig.xml and yet does not seem to be connected. It will be deleted from sensorconfig.xml." % ov)
+                    self._delcamerasensorfromxml(ov[0],ov[1])
+                if type(ov) is str:
+                    log.info("The connected temperature sensor %s is mentioned in sensorconfig.xml and yet does not seem to be connected. It will be deleted from sensorconfig.xml." % ov)
+                    self._deltempsensorfromxml(ov)
+            
+            
+            
+        
         if len(self._tobeconfigured)!=0:
             #Rewrite sensorxml file
             for miss in self._tobeconfigured:
@@ -216,9 +230,10 @@ class Sensormanager:
                         tempid=input("What name should this sensor be logged as? ")
                         self._addtempsensortoxml(tempid,miss)
             
-            #Reread edited xml file
-            self._paramlist=self._paramfromfile()
-            self._tobeconfigured=[]
+        #Reread edited xml file
+        self._paramlist=self._paramfromfile()
+        self._tobeconfigured=[]
+        self._overlyconfigured=[]
                     
             
                         
@@ -368,7 +383,25 @@ class Sensormanager:
         return self._sensorlist
             
     
-                         
+    
+    def _getnonconnectedsensors(self):
+        """Get all sensors, which are specified in sensorconfig.xml, yet not connected."""
+        current=[]
+        over=[]
+        for par in self._paramlist:
+            if par["type"]=="camera":
+                tup = (par["vendor"],par["camid"])
+                current.append(tup)
+            if par["type"]=="temperature":
+                current.append(par["handle"])
+        for curr in current:
+            if not curr in self._connectedcams:
+                over.append(curr)
+            if not self._connectedtemp is None:
+                if not curr in self._connectedtemp:
+                    over.append(curr)
+        return over
+        
     
     def _getmissingsensors(self):
         """Get all connected sensors, which are not specified in sensorconfig.xml"""
@@ -416,6 +449,50 @@ class Sensormanager:
         type_tag.text = "temperature"
         param_tag = ET.SubElement(new_sensor_tag, 'parameters')
         param_tag.attrib = {'tempid':tempid,'handle':handle}
+        rough_string = ET.tostring(et.getroot(), 'utf-8')
+        rough_string = rough_string.replace(b"\n",b"")
+        rough_string = rough_string.replace(b"\t",b"")
+        rough_string = rough_string.replace(b"  ",b"")
+        reparsed = minidom.parseString(rough_string)
+        new_string = reparsed.toprettyxml(indent="\t")
+        f=open('sensorconfig.xml','w')
+        f.write(new_string)
+        f.close()
+        
+    
+    def _delcamerasensorfromxml(self,vendor,camid):
+        """Edits sensorconfig.xml to delete camera with specified params."""
+        et = ET.parse('sensorconfig.xml')
+        for sensor in et.findall('sensor'):
+            for sub in sensor.findall('type'):
+                if sub.text=='camera':
+                    for subel in sensor.findall('parameters'):
+                        if subel.attrib['vendor']==vendor and subel.attrib['camid']==camid:
+                            et.getroot().remove(sensor)
+
+        rough_string = ET.tostring(et.getroot(), 'utf-8')
+        rough_string = rough_string.replace(b"\n",b"")
+        rough_string = rough_string.replace(b"\t",b"")
+        rough_string = rough_string.replace(b"  ",b"")
+        reparsed = minidom.parseString(rough_string)
+        new_string = reparsed.toprettyxml(indent="\t")
+        f=open('sensorconfig.xml','w')
+        f.write(new_string)
+        f.close()
+        
+        
+    
+    def _deltempsensorfromxml(self,handle):
+        """Edits sensorconfig.xml to delete temperature sensor with specified params."""
+        et = ET.parse('sensorconfig.xml')
+        for sensor in et.findall('sensor'):
+            for sub in sensor.findall('type'):
+                if sub.text=='temperature':
+                    for subel in sensor.findall('parameters'):
+                        if subel.attrib['vendor']==vendor and subel.attrib['camid']==camid:
+                            et.getroot().remove(sensor)
+
+
         rough_string = ET.tostring(et.getroot(), 'utf-8')
         rough_string = rough_string.replace(b"\n",b"")
         rough_string = rough_string.replace(b"\t",b"")
