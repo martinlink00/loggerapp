@@ -279,7 +279,9 @@ class Sensormanager:
         b=[]
         for i in a.keys():
             for j in a[i].keys():
-                b.append((i,j))
+                iout=str(i)
+                jout=str(j)
+                b.append((iout,jout))
         return b
         
     
