@@ -736,7 +736,8 @@ add_library_search_dirs([])
 # Begin libraries
 
 # _libs["libvrmusbcam2.so"] = load_library("libvrmusbcam2.so")
-_libs["libvrmusbcam2.so"] = load_library("vrmusbcam2.dll")
+_dir = os.path.dirname(__file__)
+_libs["libvrmusbcam2.so"] = load_library(os.path.join(_dir, "vrmusbcam2.dll"))
 
 # 2 libraries
 # End libraries
