@@ -35,7 +35,7 @@ server = app.server
 
 ##
 
-guiint=im.Guiinterfacelogger(0.05)
+guiint=im.Guiinterfacelogger(8.0)
 
 
 #Keyboard interupt handling
@@ -165,7 +165,7 @@ app.layout = html.Div([
             dcc.Interval(
             id='interval-cam',
     # this is the refresh rate of the page initially set to the rate of the threader. It does not change, when the slider is moved
-            interval=6000, 
+            interval=guiint.getrate()*1000, 
             n_intervals=0
             )
         ],style={'columnCount':1}),
@@ -225,16 +225,15 @@ app.layout = html.Div([
                 ),
                 dcc.Slider(
                     id='rate-slider',
-                    min=0.0,
-                    max=2.0,
-                    step=0.01,
+                    min=1,
+                    max=20,
                     value=guiint.getrate(),
                     marks={
-                            0: {'label': '0 s', 'style': {'color': '#77b0b1'}},
-                            0.4: {'label': '0.4 s', 'style': {'color': '#77b0b1'}},
-                            0.8: {'label': '0.8 s', 'style': {'color': '#77b0b1'}},
-                            1.2: {'label': '1.2 s', 'style': {'color': '#77b0b1'}},
-                            1.6: {'label': '1.6 s', 'style': {'color': '#77b0b1'}}
+                            1: {'label': '1 s', 'style': {'color': '#77b0b1'}},
+                            5: {'label': '5 s', 'style': {'color': '#77b0b1'}},
+                            10: {'label': '10 s', 'style': {'color': '#77b0b1'}},
+                            15: {'label': '15 s', 'style': {'color': '#77b0b1'}},
+                            20: {'label': '20 s', 'style': {'color': '#77b0b1'}}
                         })
             
 
@@ -327,7 +326,7 @@ def update_output(on,rate):
         guiint.thread.start()
         guiint.setrate(rate)
         log.info("Data is being logged every %f seconds" % (guiint.getrate()))
-        return 'The datalogger is turned on and set to a frame rate of %f seconds' % (guiint.getrate())
+        return 'The datalogger is turned on and exporting every %f seconds' % (guiint.getrate())
     else:
         guiint.thread.stop()
         log.info("Data is not being logged at the moment")
