@@ -336,4 +336,4 @@ def update_output(on,rate):
 
 
 if __name__ == '__main__':
-    app.run_server(debug=False)
+    app.run_server(debug=False,dev_tools_silence_routes_logging=True,dev_tools_ui=True)
