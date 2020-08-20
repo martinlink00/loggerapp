@@ -72,6 +72,11 @@ class Camexp:
         if not self._cammngr.isaquiring:
             self.selectacam()
             self._cammngr.start()
+            
+    def stopcam(self):
+        """Stop the active cam"""
+        if self._cammngr.isaquiring:
+            self._cammngr.stop()
     
 
   
@@ -504,4 +509,12 @@ class Sensormanager:
         f=open('sensorconfig.xml','w')
         f.write(new_string)
         f.close()
+        
+        
+        
+        
+    def closeallcams(self):
+        """Close all cams in self._connectedcamexp."""
+        for cam in self._connectedcamexp.values():
+            cam.stopcam()
         
