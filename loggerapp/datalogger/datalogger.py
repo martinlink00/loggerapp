@@ -5,7 +5,6 @@
 
 import datalogger.analyser as analyser
 import datalogger.cameras as cam
-import datalogger.trigger as trig
 from datalogger.logsetup import log
 from xml.dom import minidom
 import xml.etree.ElementTree as ET
@@ -17,9 +16,8 @@ import ctypes
 
 class Exporter:
     """Abstract Exporter class, capable of exporting data to influx format"""
-    def __init__(self,type,sensor,trigger):
+    def __init__(self,type,sensor):
         self.type=type
-        self.trigger=trigger
         self.sensor=sensor
         
         
@@ -85,10 +83,10 @@ class Camexp:
     
 class Beam(Exporter):
     """Class for beam sensors, which have their own ROI settings and fit output datas"""
-    def __init__(self,cam,beam,roiparams,trigger):
+    def __init__(self,cam,beam,roiparams):
             self._cam=cam
             tpe=self._cam.camstr() + " " + str(beam)
-            super(Beam, self).__init__("camera",tpe,trigger)
+            super(Beam, self).__init__("camera",tpe)
             self.latestimage=None
             self.latestroi=None
             self.latestroiparams=None
@@ -154,9 +152,9 @@ class Beam(Exporter):
     
 class Temperature(Exporter):
     """Class for temperature sensors"""
-    def __init__(self,dll,handle,tempid,tempsensors,trigger):
+    def __init__(self,dll,handle,tempid,tempsensors):
         if handle in tempsensors:
-            super(Temperature, self).__init__("temperature",str(tempid),trigger)
+            super(Temperature, self).__init__("temperature",str(tempid))
             self._dll=dll
             self._handle=handle
         else:
@@ -363,9 +361,9 @@ class Sensormanager:
         for par in self._paramlist:
             if par['type']=='camera':
                 roipar=eval(par['roiparams'])
-                ret.append(Beam(self._connectedcamexp[(par['vendor'],par['camid'])],par['beam'],roipar,trig.PeriodicTrigger(8.0)))
+                ret.append(Beam(self._connectedcamexp[(par['vendor'],par['camid'])],par['beam'],roipar))
             if par['type']=='temperature':
-                ret.append(Temperature(ctypes.windll.LoadLibrary('usbtc08.dll'),par['handle'],par['tempid'],self._connectedtemp,trig.PeriodicTrigger(8.0)))  
+                ret.append(Temperature(ctypes.windll.LoadLibrary('usbtc08.dll'),par['handle'],par['tempid'],self._connectedtemp))  
         return ret
     
         
@@ -467,8 +465,8 @@ class Sensormanager:
         f=open('sensorconfig.xml','w')
         f.write(new_string)
         f.close()
-       
-      
+        
+    
     def _delcamerasensorfromxml(self,vendor,camid):
         """Edits sensorconfig.xml to delete camera with specified params."""
         et = ET.parse('sensorconfig.xml')
