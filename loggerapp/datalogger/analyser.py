@@ -268,6 +268,12 @@ class ImageAnalyser(object):
             log.warn("Could not set ROI because image is None")
      
     
+    def fitdataisrealistic(self):
+        """Should return True if Fitdata is realistic."""
+        if np.abs(self._lfitparams[2])<max(self.imgheight/2,self.imgwidth/2) and np.abs(self._sfitparams[2])<max(self.imgheight/2,self.imgwidth/2):
+            if 0<self._vfitparams[1]<self.roiimgheight and 0<self._hfitparams[1]<self.roiimgwidth and self._vfitparams[0]>0 and self._hfitparams[0]>0:
+                return True
+        return False
             
             
             
@@ -279,7 +285,7 @@ class ImageAnalyser(object):
 
         try:
             if self._hfitparams is not None and self._vfitparams is not None and self._lfitparams is not None and self._sfitparams is not None:
-                if np.abs(self._lfitparams[2])<max(self.imgheight/2,self.imgwidth/2) and np.abs(self._sfitparams[2])<max(self.imgheight/2,self.imgwidth/2):
+                if self.fitdataisrealistic():
                     vc=(self._vfitparams[1]+self._roiposy) * self._pixelsize
                     hc=(self._hfitparams[1]+self._roiposx) * self._pixelsize
                     lsa=4*np.abs(self._lfitparams[2]) * self._pixelsize
@@ -296,7 +302,7 @@ class ImageAnalyser(object):
 
                     return data
                 else:
-                    log.warn("Unrealistic waist fits were acquired. Data export was supressed.")
+                    log.warn("Unrealistic fit data was acquired. Data export was supressed.")
                     return None
 
 
