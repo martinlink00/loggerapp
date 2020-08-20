@@ -10,6 +10,7 @@ import dash_core_components as dcc
 import dash_bootstrap_components as dbc
 import dash_html_components as html
 import dash_daq as daq
+import signal
 
 import plotly.graph_objects as go
 import plotly.express as px
@@ -37,6 +38,17 @@ server = app.server
 guiint=im.Guiinterfacelogger(8.0)
 
 
+#Keyboard interupt handling
+
+def keyboardInterruptHandler(signal, frame):
+    guiint.sensormngr.closeallcams()
+    log.info("KeyboardInterrupt (ID: {}) has been caught. You can now close the Browser Tab".format(signal))
+    exit(0)
+
+signal.signal(signal.SIGINT, keyboardInterruptHandler)
+
+
+#App layout
 
 app.layout = html.Div([
     html.Div([
