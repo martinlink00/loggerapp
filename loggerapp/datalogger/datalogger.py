@@ -110,16 +110,16 @@ class Beam(Exporter):
         if self.getcamman().hasimages:            
             self.IA.image=self._cam.getanimage()            
             try:
-                self.IA.setroi()                       
+                self.IA.setroi()
+                self.latestroiparams=(self.IA.roiposx,self.IA.roiposy,self.IA.roiimgwidth,self.IA.roiimgheight)
             except:
                 log.error('Could not set ROI of sensor %s, %s.' % (self.type,self.sensor))                           
             try:
                 fitdata=self.IA.getfitdata()
-                if not None in fitdata:
-                    #first safes the latest image for fit data to be in sync with live cam view
-                    self.latestimage=self.IA.image
-                    self.latestroi=self.IA.roiimage
-                    self.latestroiparams=(self.IA.roiposx,self.IA.roiposy,self.IA.roiimgwidth,self.IA.roiimgheight)
+                #first safes the latest image for fit data to be in sync with live cam view
+                self.latestimage=self.IA.image
+                self.latestroi=self.IA.roiimage
+                if not None in fitdata:                    
                     #then proceeds to return field values such as fit data and roi params in directionary format
                     lib={}
                     lib["hcenter"]=fitdata[0]
