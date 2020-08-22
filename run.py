@@ -6,4 +6,4 @@ import os
 
 ####################################
 
-os.system('python loggerapp/app.py')
+os.system('python3 loggerapp/app.py')
