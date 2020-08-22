@@ -127,7 +127,7 @@ app.layout = html.Div([
                             ),
                             dbc.Tooltip(
                                 "Beam angle (extracted from database), "
-                                "Should be in (-90°,90°). 0° refers to horizontal long axis.",
+                                "Should be in (-90 degrees,90 degrees). 0 degrees refers to horizontal long axis.",
                                 target="anglehelp",
                                 placement="top",
                                 style={'color':'white', 'backgroundColor':'black'}
