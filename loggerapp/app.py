@@ -35,7 +35,7 @@ server = app.server
 
 ##
 
-guiint=im.Guiinterfacelogger(0.05)
+guiint=im.Guiinterfacelogger(0.01)
 
 
 #Keyboard interupt handling
@@ -165,10 +165,20 @@ app.layout = html.Div([
             dcc.Interval(
             id='interval-cam',
     # this is the refresh rate of the page initially set to the rate of the threader. It does not change, when the slider is moved
-            interval=5000, 
+            interval=5*1000, 
             n_intervals=0
             )
         ],style={'columnCount':1}),
+        
+        html.Div([
+            html.H4('Create Snapshot right now:'),
+            html.Div([
+                html.Div([
+                    html.Button('Snapshot',id='snapshot-button',n_clicks=0)
+                ],className="twelve columns",style={'columnCount':1})
+            ], className='row'),
+            html.Div(id='snapshot-hidden',style={"display":"none"})
+        ], style={'backgroundColor':'rgb(250,250,250)'}),
         
         #ROI input Division
         
@@ -327,6 +337,18 @@ def update_output(on,rate):
         guiint.thread.stop()
         log.info("Data is not being logged at the moment")
         return 'The datalogger is turned off'
+    
+    
+    
+@app.callback(
+    dash.dependencies.Output('snapshot-hidden','children'),
+    [dash.dependencies.Input('snapshot-button','n_clicks')]
+)
+
+def snapshot(n_clicks):
+    guiint.camviewer.getselectedcam().snapshot=True
+    log.info("A snapshot of the selected camera instance was just made.")
+
 
 
 
