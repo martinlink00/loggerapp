@@ -21,6 +21,7 @@ class Exporter:
         self.type=type
         self.trigger=trigger
         self.sensor=sensor
+        self.snapshot=False
         
         
     def getdata(self):
