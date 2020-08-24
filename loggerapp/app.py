@@ -278,12 +278,7 @@ app.layout = html.Div([
 
 def update_image(beamselection,on,n):
     guiint.selectcam(beamselection)
-    if on:
-        return guiint.fitvis()
-    else:
-        blackimg=px.imshow(np.zeros((200,200)))
-        blackimg.update_layout(coloraxis_showscale=False)
-        return blackimg, blackimg, blackimg, 0, 0, 0, 0, 0, 0, 0, 0, 0
+    return guiint.fitvis()
 
     
 @app.callback(
