@@ -165,7 +165,7 @@ app.layout = html.Div([
             dcc.Interval(
             id='interval-cam',
     # this is the refresh rate of the page initially set to the rate of the threader. It does not change, when the slider is moved
-            interval=guiint.getrate()*1000, 
+            interval=5000, 
             n_intervals=0
             )
         ],style={'columnCount':1}),
