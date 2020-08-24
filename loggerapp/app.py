@@ -225,8 +225,9 @@ app.layout = html.Div([
                 ),
                 dcc.Slider(
                     id='rate-slider',
-                    min=1,
-                    max=20,
+                    min=0.0,
+                    max=2.0,
+                    step=0.01,
                     value=guiint.getrate(),
                     marks={
                             0: {'label': '0 s', 'style': {'color': '#77b0b1'}},
@@ -320,7 +321,7 @@ def update_output(on,rate):
     if on:
         guiint.thread.start()
         guiint.setrate(rate)
-        log.info("Data is being logged every %f seconds" % (guiint.getrate()))
+        log.info("Data logger is turned on at a frame rate of %f seconds" % (guiint.getrate()))
         return 'The datalogger is turned on and set to a frame rate of %f seconds' % (guiint.getrate())
     else:
         guiint.thread.stop()
