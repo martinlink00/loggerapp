@@ -157,11 +157,12 @@ class Beam(Exporter):
     
 class Temperature(Exporter):
     """Class for temperature sensors"""
-    def __init__(self,dll,handle,tempid,tempsensors):
+    def __init__(self,dll,handle,tempid,tempsensors,channellist):
         if handle in tempsensors:
             super(Temperature, self).__init__("temperature",str(tempid))
             self._dll=dll
             self._handle=handle
+            self._channellist=channellist
         else:
             log.error('No temperature sensor with the handle %s is connected.' % (handle))
         
@@ -206,10 +207,10 @@ class Temperature(Exporter):
         
         for dev in devlist:
             mydll.usb_tc08_close_unit(dev) 
-        
         lib={}
+        
         for i in range(0,9):
-            st='channel'+ str(i+1)
+            st=self._channellist[i]
             lib[st]=temp[i]
             
         return lib
@@ -273,7 +274,12 @@ class Sensormanager:
                     configurenow=input("Configure %s now? (y/n) " % miss)
                     if configurenow=="y":
                         tempid=input("What name should this sensor be logged as? ")
-                        self._addtempsensortoxml(tempid,miss)
+                        defaultlist=[]
+                        for i in range(0,9):
+                            st='Channel '+ str(i+1)
+                            defaultlist.append(st)
+                        self._addtempsensortoxml(tempid,miss,defaultlist)
+                        
             
         #Reread edited xml file
         self._paramlist=self._paramfromfile()
@@ -381,6 +387,10 @@ class Sensormanager:
             elif r['type']=='temperature':
                 r['tempid']=att['tempid'].value
                 r['handle']=att['handle'].value
+                for i in range(0,9):
+                    keystr='channel'+ str(i+1)
+                    r[keystr]=att[keystr].value
+
             paramlist.append(r)
         return paramlist
     
@@ -404,7 +414,11 @@ class Sensormanager:
                 roipar=eval(par['roiparams'])
                 ret.append(Beam(self._connectedcamexp[(par['vendor'],par['camid'])],par['beam'],roipar))
             if par['type']=='temperature':
-                ret.append(Temperature(ctypes.windll.LoadLibrary(DLLPATH),par['handle'],par['tempid'],self._connectedtemp))  
+                channellist=[]
+                for i in range(0,9):
+                    keystr='channel' + str(i+1)
+                    channellist.append(par[keystr])    
+                ret.append(Temperature(ctypes.windll.LoadLibrary(DLLPATH),par['handle'],par['tempid'],self._connectedtemp,channellist))  
         return ret
     
         
@@ -489,7 +503,7 @@ class Sensormanager:
         f.write(new_string)
         f.close()
         
-    def _addtempsensortoxml(self,tempid,handle):
+    def _addtempsensortoxml(self,tempid,handle,channelnamelist):
         """Edits sensorconfig.xml to add a temperature sensor with the specified params."""
         et = ET.parse('sensorconfig.xml')
         new_sensor_tag = ET.SubElement(et.getroot(), 'sensor')
@@ -497,6 +511,9 @@ class Sensormanager:
         type_tag.text = "temperature"
         param_tag = ET.SubElement(new_sensor_tag, 'parameters')
         param_tag.attrib = {'tempid':tempid,'handle':handle}
+        for i in range(0,9):
+            keystr='channel' + str(i+1)
+            param_tag.attrib[keystr]=channelnamelist[i]
         rough_string = ET.tostring(et.getroot(), 'utf-8')
         rough_string = rough_string.replace(b"\n",b"")
         rough_string = rough_string.replace(b"\t",b"")
