@@ -169,6 +169,30 @@ class Temperature(Exporter):
     
     def getdata(self):        
         """Exports data field in dictionary format"""
+        devlist=[]
+        id=1
+        if id!=-1:
+            if id!=0:    
+                devlist.append(id)
+        else:
+            err=mydll.usb_tc08_get_last_error(0)
+            if err==1:
+                log.error('Failed to connect to temperature sensor: USBTC08_ERROR_OS_NOT_SUPPORTED')
+            if err==2:
+                log.error('Failed to connect to temperature sensor: USBTC08_ERROR_NO_CHANNELS_SET')
+            if err==3:
+                log.error('Failed to connect to temperature sensor: USBTC08_ERROR_INVALID_PARAMETER')
+            if err==4:
+                log.error('Failed to connect to temperature sensor: USBTC08_ERROR_VARIANT_NOT_SUPPORTED')
+            if err==5:
+                log.error('Failed to connect to temperature sensor: USBTC08_ERROR_INCORRECT_MODE')
+            if err==6:
+                log.error('Failed to connect to temperature sensor: USBTC08_ERROR_ENUMERATION_INCOMPLETE')
+            
+            return None
+            
+        
+                    
         hand=int(self._handle)
         mydll = self._dll
         temp = np.zeros( (10,), dtype=np.float32)
@@ -178,12 +202,16 @@ class Temperature(Exporter):
         tc_type=ord('K')
         for i in range(1,9):
             mydll.usb_tc08_set_channel(hand,i,tc_type)
-        mydll.usb_tc08_get_single(hand, temp.ctypes.data, overflow_flags.ctypes.data, 0) 
-        mydll.usb_tc08_close_unit(hand)          
+        mydll.usb_tc08_get_single(hand, temp.ctypes.data, overflow_flags.ctypes.data, 0)
+        
+        for dev in devlist:
+            mydll.usb_tc08_close_unit(dev) 
+        
         lib={}
         for i in range(0,9):
             st='channel'+ str(i+1)
             lib[st]=temp[i]
+            
         return lib
         
     
