@@ -9,9 +9,13 @@ from datalogger.logsetup import log
 from xml.dom import minidom
 import xml.etree.ElementTree as ET
 import ctypes
+import os
 
 
 #################################################################################################
+
+
+DLLPATH = os.getcwd() + r'\usbtc08.dll'
 
 
 class Exporter:
@@ -163,17 +167,18 @@ class Temperature(Exporter):
 
     
     def getdata(self):        
-        """Exports data field in dictionary format"""        
+        """Exports data field in dictionary format"""
+        hand=int(self._handle)
         mydll = self._dll
         temp = np.zeros( (10,), dtype=np.float32)
         overflow_flags = np.zeros( (1,), dtype=np.int16)     
-        mydll.usb_tc08_set_mains(self._handle,50)
-        mydll.usb_tc08_set_channel(self._handle, 0, 0 )
+        mydll.usb_tc08_set_mains(hand,50)
+        mydll.usb_tc08_set_channel(hand, 0, 0 )
         tc_type=ord('K')
         for i in range(1,9):
-            mydll.usb_tc08_set_channel(self._handle,i,tc_type)
-        mydll.usb_tc08_get_single(self._handle, temp.ctypes.data, overflow_flags.ctypes.data, 0) 
-        mydll.usb_tc08_close_unit(self._handle)          
+            mydll.usb_tc08_set_channel(hand,i,tc_type)
+        mydll.usb_tc08_get_single(hand, temp.ctypes.data, overflow_flags.ctypes.data, 0) 
+        mydll.usb_tc08_close_unit(hand)          
         lib={}
         for i in range(0,9):
             st='channel'+ str(i+1)
@@ -228,12 +233,12 @@ class Sensormanager:
                         for beam in beamlist:
                             beamname=input("What name should beam number %i be logged as? " % (beam+1))
                             self._addcamerasensortoxml(miss[0],miss[1],beamname,"(0,0,100,100)")
-                if type(miss) is int:
-                    log.info("The connected temperature sensor %s is not yet configured in sensorconfig.xml." % miss)
+                if type(miss) is str:
+                    log.info("The connected temperature sensor with the handle %s is not yet configured in sensorconfig.xml." % miss)
                     configurenow=input("Configure %s now? (y/n) " % miss)
                     if configurenow=="y":
                         tempid=input("What name should this sensor be logged as? ")
-                        self._addtempsensortoxml(tempid,str(miss))
+                        self._addtempsensortoxml(tempid,miss)
             
         #Reread edited xml file
         self._paramlist=self._paramfromfile()
@@ -294,7 +299,7 @@ class Sensormanager:
     def _initiatetemplist(self):  
         """Uses DLL in order to find an connect to all temperature handles. Returns list for said handles."""
         try:
-            mydll = ctypes.windll.LoadLibrary('usbtc08.dll')
+            mydll = ctypes.windll.LoadLibrary(DLLPATH)
         except:
             log.error('Failed to load DLL file usbtc08.dll')
             return None
@@ -304,7 +309,7 @@ class Sensormanager:
             id=mydll.usb_tc08_open_unit() #Returns device handle, or 0 if no device was found, or -1 if an error occured
             if id!=-1:
                 if id!=0:
-                    templist.append(id)
+                    templist.append(str(id))
             else:
                 err=mydll.usb_tc08_get_last_error(0)
                 if err==1:
@@ -363,7 +368,7 @@ class Sensormanager:
                 roipar=eval(par['roiparams'])
                 ret.append(Beam(self._connectedcamexp[(par['vendor'],par['camid'])],par['beam'],roipar))
             if par['type']=='temperature':
-                ret.append(Temperature(ctypes.windll.LoadLibrary('usbtc08.dll'),par['handle'],par['tempid'],self._connectedtemp))  
+                ret.append(Temperature(ctypes.windll.LoadLibrary(DLLPATH),par['handle'],par['tempid'],self._connectedtemp))  
         return ret
     
         
@@ -496,7 +501,7 @@ class Sensormanager:
             for sub in sensor.findall('type'):
                 if sub.text=='temperature':
                     for subel in sensor.findall('parameters'):
-                        if subel.attrib['vendor']==vendor and subel.attrib['camid']==camid:
+                        if subel.attrib['handle']==handle:
                             et.getroot().remove(sensor)
 
 
