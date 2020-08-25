@@ -6,12 +6,11 @@
 import datalogger.analyser as analyser
 import datalogger.cameras as cam
 from datalogger.logsetup import log
+import numpy as np
 from xml.dom import minidom
 import xml.etree.ElementTree as ET
 import ctypes
 import os
-import numpy as np
-
 
 
 #################################################################################################
@@ -523,5 +522,6 @@ class Sensormanager:
     def closeallcams(self):
         """Close all cams in self._connectedcamexp."""
         for cam in self._connectedcamexp.values():
+            log.debug('Stopping the camera %s.' % cam.camstr())
             cam.stopcam()
         
