@@ -22,6 +22,7 @@ import datalogger.iter as run
 import datalogger.Thread
 from datalogger.logsetup import log
 
+import time
 
 
 ##############################################################################################
@@ -41,7 +42,11 @@ guiint=im.Guiinterfacelogger(8.0)
 #Keyboard interupt handling
 
 def keyboardInterruptHandler(signal, frame):
+    guiint.thread.stop()
+    log.debug('Thread stopped.')
+    log.debug('Going to close all cams now.')
     guiint.sensormngr.closeallcams()
+    log.debug('All cams were closed.')
     log.info("KeyboardInterrupt (ID: {}) has been caught. You can now close the Browser Tab".format(signal))
     exit(0)
 
