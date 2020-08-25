@@ -231,12 +231,12 @@ class Sensormanager:
                         for beam in beamlist:
                             beamname=input("What name should beam number %i be logged as? " % (beam+1))
                             self._addcamerasensortoxml(miss[0],miss[1],beamname,"(0,0,100,100)")
-                if type(miss) is str:
+                if type(miss) is int:
                     log.info("The connected temperature sensor %s is not yet configured in sensorconfig.xml." % miss)
                     configurenow=input("Configure %s now? (y/n) " % miss)
                     if configurenow=="y":
                         tempid=input("What name should this sensor be logged as? ")
-                        self._addtempsensortoxml(tempid,miss)
+                        self._addtempsensortoxml(tempid,str(miss))
             
         #Reread edited xml file
         self._paramlist=self._paramfromfile()
