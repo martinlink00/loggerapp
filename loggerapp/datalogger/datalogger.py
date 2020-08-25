@@ -208,12 +208,18 @@ class Sensormanager:
         if len(self._overlyconfigured)!=0:
             for ov in self._overlyconfigured:
                 if type(ov) is tuple:
-                    log.info("The connected camera %s %s is mentioned in sensorconfig.xml and yet does not seem to be connected. It will be deleted from sensorconfig.xml." % ov)
-                    self._delcamerasensorfromxml(ov[0],ov[1])
+                    log.info("The connected camera %s %s is mentioned in sensorconfig.xml and yet does not seem to be connected." % ov)
+                    delnow=input("Delete camera %s %s from sensorconfig.xml? (y/n)" % ov)
+                    if delnow=="y":
+                        self._delcamerasensorfromxml(ov[0],ov[1])
+                        log.info("Camera %s %s was deleted from sensorconfig.xml." % ov)
                 if type(ov) is str:
-                    log.info("The connected temperature sensor %s is mentioned in sensorconfig.xml and yet does not seem to be connected. It will be deleted from sensorconfig.xml." % ov)
-                    self._deltempsensorfromxml(ov)
-            
+                    log.info("The connected temperature sensor %s is mentioned in sensorconfig.xml and yet does not seem to be connected." % ov)
+                    delnow=input("Delete temperature sensor with the handle %s from sensorconfig.xml? (y/n)" % ov)
+                    if delnow=="y":
+                        self._deltempsensorfromxml(ov)
+                        log.info("Temperature sensor with the handle %s was deleted from sensorconfig.xml." % ov)
+
             
             
         
@@ -310,6 +316,7 @@ class Sensormanager:
             id=mydll.usb_tc08_open_unit() #Returns device handle, or 0 if no device was found, or -1 if an error occured
             if id!=-1:
                 if id!=0:
+                    log.info("Temperature sensor of handle %i encountered.")
                     templist.append(str(id))
             else:
                 err=mydll.usb_tc08_get_last_error(0)
