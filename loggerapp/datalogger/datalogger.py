@@ -345,13 +345,15 @@ class Sensormanager:
             log.error('Failed to load DLL file usbtc08.dll')
             return None
         id=1
-        templist=[];
+        templist=[]
+        devlist=[]
         while id!=0:
             id=mydll.usb_tc08_open_unit() #Returns device handle, or 0 if no device was found, or -1 if an error occured
             if id!=-1:
                 if id!=0:
                     log.info("Temperature sensor of handle %i encountered.")
                     templist.append(str(id))
+                    devlist.append(id)
             else:
                 err=mydll.usb_tc08_get_last_error(0)
                 if err==1:
@@ -366,7 +368,11 @@ class Sensormanager:
                     log.error('Failed to connect to temperature sensor: USBTC08_ERROR_INCORRECT_MODE')
                 if err==6:
                     log.error('Failed to connect to temperature sensor: USBTC08_ERROR_ENUMERATION_INCOMPLETE')
-                break     
+                break
+        
+        for dev in devlist:
+            mydll.usb_tc08_close_unit(dev)
+            
         return templist
            
     
