@@ -16,7 +16,7 @@ import os
 #################################################################################################
 
 
-DLLPATH = os.getcwd() + r'\datalogger\usbtc08.dll'
+DLLPATH = os.getcwd() + r'\loggerapp\datalogger\usbtc08.dll'
 
 
 class Exporter:
