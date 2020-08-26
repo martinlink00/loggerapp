@@ -6,10 +6,4 @@ import os
 
 ####################################
 
-try:
-
-    os.system('python3 loggerapp/app.py')
-    
-except:
-    
-    os.system('python loggerapp/app.py')
+os.system('python loggerapp/app.py')
