@@ -47,7 +47,10 @@ def keyboardInterruptHandler(signal, frame):
     log.debug('Going to close all cams now.')
     guiint.sensormngr.closeallcams()
     log.debug('All cams were closed.')
-    log.info("KeyboardInterrupt (ID: {}) has been caught. You can now close the Browser Tab".format(signal))
+    log.debug('Closing all temperature sensors.')
+    guiint.sensormngr.closealltemp()
+    log.debug('All temperature sensors closed.')
+    log.info("Program was stopped. You can now close the Browser Tab".format(signal))
     exit(0)
 
 signal.signal(signal.SIGINT, keyboardInterruptHandler)
