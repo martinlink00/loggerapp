@@ -7,12 +7,17 @@ import datalogger.analyser as analyser
 import datalogger.cameras as cam
 import datalogger.trigger as trig
 from datalogger.logsetup import log
+import numpy as np
 from xml.dom import minidom
 import xml.etree.ElementTree as ET
 import ctypes
+import os
 
 
 #################################################################################################
+
+
+DLLPATH = os.getcwd() + r'\loggerapp\datalogger\usbtc08.dll'
 
 
 class Exporter:
@@ -155,32 +160,36 @@ class Beam(Exporter):
     
 class Temperature(Exporter):
     """Class for temperature sensors"""
-    def __init__(self,dll,handle,tempid,tempsensors,trigger):
+    def __init__(self,dll,handle,tempid,tempsensors,trigger,channellist):
         if handle in tempsensors:
             super(Temperature, self).__init__("temperature",str(tempid),trigger)
             self._dll=dll
             self._handle=handle
+            self._channellist=channellist
         else:
             log.error('No temperature sensor with the handle %s is connected.' % (handle))
         
-
     
     def getdata(self):        
-        """Exports data field in dictionary format"""        
+        """Exports data field in dictionary format"""
+        hand=int(self._handle)
         mydll = self._dll
         temp = np.zeros( (10,), dtype=np.float32)
         overflow_flags = np.zeros( (1,), dtype=np.int16)     
-        mydll.usb_tc08_set_mains(self._handle,50)
-        mydll.usb_tc08_set_channel(self._handle, 0, 0 )
+        mydll.usb_tc08_set_mains(hand,50)
+        mydll.usb_tc08_set_channel(hand, 0, 0 )
         tc_type=ord('K')
         for i in range(1,9):
-            mydll.usb_tc08_set_channel(self._handle,i,tc_type)
-        mydll.usb_tc08_get_single(self._handle, temp.ctypes.data, overflow_flags.ctypes.data, 0) 
-        mydll.usb_tc08_close_unit(self._handle)          
+            mydll.usb_tc08_set_channel(hand,i,tc_type)
+        mydll.usb_tc08_get_single(hand, temp.ctypes.data, overflow_flags.ctypes.data, 0)
+        
+
         lib={}
+        
         for i in range(0,9):
-            st='channel'+ str(i+1)
+            st=self._channellist[i]
             lib[st]=temp[i]
+            
         return lib
         
     
@@ -205,12 +214,18 @@ class Sensormanager:
         if len(self._overlyconfigured)!=0:
             for ov in self._overlyconfigured:
                 if type(ov) is tuple:
-                    log.info("The connected camera %s %s is mentioned in sensorconfig.xml and yet does not seem to be connected. It will be deleted from sensorconfig.xml." % ov)
-                    self._delcamerasensorfromxml(ov[0],ov[1])
+                    log.info("The connected camera %s %s is mentioned in sensorconfig.xml and yet does not seem to be connected." % ov)
+                    delnow=input("Delete camera %s %s from sensorconfig.xml? (y/n)" % ov)
+                    if delnow=="y":
+                        self._delcamerasensorfromxml(ov[0],ov[1])
+                        log.info("Camera %s %s was deleted from sensorconfig.xml." % ov)
                 if type(ov) is str:
-                    log.info("The connected temperature sensor %s is mentioned in sensorconfig.xml and yet does not seem to be connected. It will be deleted from sensorconfig.xml." % ov)
-                    self._deltempsensorfromxml(ov)
-            
+                    log.info("The connected temperature sensor %s is mentioned in sensorconfig.xml and yet does not seem to be connected." % ov)
+                    delnow=input("Delete temperature sensor with the handle %s from sensorconfig.xml? (y/n)" % ov)
+                    if delnow=="y":
+                        self._deltempsensorfromxml(ov)
+                        log.info("Temperature sensor with the handle %s was deleted from sensorconfig.xml." % ov)
+
             
             
         
@@ -231,12 +246,18 @@ class Sensormanager:
                         for beam in beamlist:
                             beamname=input("What name should beam number %i be logged as? " % (beam+1))
                             self._addcamerasensortoxml(miss[0],miss[1],beamname,"(0,0,100,100)")
-                if type(miss) is int:
-                    log.info("The connected temperature sensor %s is not yet configured in sensorconfig.xml." % miss)
+
+                if type(miss) is str:
+                    log.info("The connected temperature sensor with the handle %s is not yet configured in sensorconfig.xml." % miss)
                     configurenow=input("Configure %s now? (y/n) " % miss)
                     if configurenow=="y":
                         tempid=input("What name should this sensor be logged as? ")
-                        self._addtempsensortoxml(tempid,str(miss))
+                        defaultlist=[]
+                        for i in range(0,9):
+                            st='Channel '+ str(i+1)
+                            defaultlist.append(st)
+                        self._addtempsensortoxml(tempid,miss,defaultlist)
+                        
             
         #Reread edited xml file
         self._paramlist=self._paramfromfile()
@@ -297,17 +318,20 @@ class Sensormanager:
     def _initiatetemplist(self):  
         """Uses DLL in order to find an connect to all temperature handles. Returns list for said handles."""
         try:
-            mydll = ctypes.windll.LoadLibrary('usbtc08.dll')
+            mydll = ctypes.windll.LoadLibrary(DLLPATH)
         except:
             log.error('Failed to load DLL file usbtc08.dll')
             return None
         id=1
-        templist=[];
+        templist=[]
+        devlist=[]
         while id!=0:
             id=mydll.usb_tc08_open_unit() #Returns device handle, or 0 if no device was found, or -1 if an error occured
             if id!=-1:
                 if id!=0:
-                    templist.append(id)
+                    log.info("Temperature sensor of handle %i encountered.")
+                    templist.append(str(id))
+                    devlist.append(id)
             else:
                 err=mydll.usb_tc08_get_last_error(0)
                 if err==1:
@@ -322,7 +346,9 @@ class Sensormanager:
                     log.error('Failed to connect to temperature sensor: USBTC08_ERROR_INCORRECT_MODE')
                 if err==6:
                     log.error('Failed to connect to temperature sensor: USBTC08_ERROR_ENUMERATION_INCOMPLETE')
-                break     
+                break
+        
+            
         return templist
            
     
@@ -343,6 +369,10 @@ class Sensormanager:
             elif r['type']=='temperature':
                 r['tempid']=att['tempid'].value
                 r['handle']=att['handle'].value
+                for i in range(0,9):
+                    keystr='channel'+ str(i+1)
+                    r[keystr]=att[keystr].value
+
             paramlist.append(r)
         return paramlist
     
@@ -366,7 +396,11 @@ class Sensormanager:
                 roipar=eval(par['roiparams'])
                 ret.append(Beam(self._connectedcamexp[(par['vendor'],par['camid'])],par['beam'],roipar,trig.PeriodicTrigger(8.0)))
             if par['type']=='temperature':
-                ret.append(Temperature(ctypes.windll.LoadLibrary('usbtc08.dll'),par['handle'],par['tempid'],self._connectedtemp,trig.PeriodicTrigger(8.0)))  
+                channellist=[]
+                for i in range(0,9):
+                    keystr='channel' + str(i+1)
+                    channellist.append(par[keystr])    
+                ret.append(Temperature(ctypes.windll.LoadLibrary(DLLPATH),par['handle'],par['tempid'],self._connectedtemp,trig.PeriodicTrigger(8.0),channellist))
         return ret
     
         
@@ -451,7 +485,7 @@ class Sensormanager:
         f.write(new_string)
         f.close()
         
-    def _addtempsensortoxml(self,tempid,handle):
+    def _addtempsensortoxml(self,tempid,handle,channelnamelist):
         """Edits sensorconfig.xml to add a temperature sensor with the specified params."""
         et = ET.parse('sensorconfig.xml')
         new_sensor_tag = ET.SubElement(et.getroot(), 'sensor')
@@ -459,6 +493,9 @@ class Sensormanager:
         type_tag.text = "temperature"
         param_tag = ET.SubElement(new_sensor_tag, 'parameters')
         param_tag.attrib = {'tempid':tempid,'handle':handle}
+        for i in range(0,9):
+            keystr='channel' + str(i+1)
+            param_tag.attrib[keystr]=channelnamelist[i]
         rough_string = ET.tostring(et.getroot(), 'utf-8')
         rough_string = rough_string.replace(b"\n",b"")
         rough_string = rough_string.replace(b"\t",b"")
@@ -499,7 +536,7 @@ class Sensormanager:
             for sub in sensor.findall('type'):
                 if sub.text=='temperature':
                     for subel in sensor.findall('parameters'):
-                        if subel.attrib['vendor']==vendor and subel.attrib['camid']==camid:
+                        if subel.attrib['handle']==handle:
                             et.getroot().remove(sensor)
 
 
@@ -519,5 +556,17 @@ class Sensormanager:
     def closeallcams(self):
         """Close all cams in self._connectedcamexp."""
         for cam in self._connectedcamexp.values():
+            log.debug('Stopping the camera %s.' % cam.camstr())
             cam.stopcam()
+			
+    def closealltemp(self):
+        """Close all temperature sensors in self._connectedtemp."""
+        try:
+            mydll = ctypes.windll.LoadLibrary(DLLPATH)
+            for hand in self._connectedtemp:
+                log.info("Closing temperature sensor with the handle %s" %hand)
+                mydll.usb_tc08_close_unit(int(hand))
+                log.info("Temperature sensor of handle %s has been closed." %hand)
+        except:
+            pass
         
