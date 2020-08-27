@@ -166,34 +166,9 @@ class Temperature(Exporter):
         else:
             log.error('No temperature sensor with the handle %s is connected.' % (handle))
         
-
     
     def getdata(self):        
         """Exports data field in dictionary format"""
-        devlist=[]
-        id=1
-        if id!=-1:
-            if id!=0:    
-                devlist.append(id)
-        else:
-            err=mydll.usb_tc08_get_last_error(0)
-            if err==1:
-                log.error('Failed to connect to temperature sensor: USBTC08_ERROR_OS_NOT_SUPPORTED')
-            if err==2:
-                log.error('Failed to connect to temperature sensor: USBTC08_ERROR_NO_CHANNELS_SET')
-            if err==3:
-                log.error('Failed to connect to temperature sensor: USBTC08_ERROR_INVALID_PARAMETER')
-            if err==4:
-                log.error('Failed to connect to temperature sensor: USBTC08_ERROR_VARIANT_NOT_SUPPORTED')
-            if err==5:
-                log.error('Failed to connect to temperature sensor: USBTC08_ERROR_INCORRECT_MODE')
-            if err==6:
-                log.error('Failed to connect to temperature sensor: USBTC08_ERROR_ENUMERATION_INCOMPLETE')
-            
-            return None
-            
-        
-                    
         hand=int(self._handle)
         mydll = self._dll
         temp = np.zeros( (10,), dtype=np.float32)
@@ -205,8 +180,7 @@ class Temperature(Exporter):
             mydll.usb_tc08_set_channel(hand,i,tc_type)
         mydll.usb_tc08_get_single(hand, temp.ctypes.data, overflow_flags.ctypes.data, 0)
         
-        for dev in devlist:
-            mydll.usb_tc08_close_unit(dev) 
+
         lib={}
         
         for i in range(0,9):
@@ -370,8 +344,6 @@ class Sensormanager:
                     log.error('Failed to connect to temperature sensor: USBTC08_ERROR_ENUMERATION_INCOMPLETE')
                 break
         
-        for dev in devlist:
-            mydll.usb_tc08_close_unit(dev)
             
         return templist
            
@@ -582,4 +554,15 @@ class Sensormanager:
         for cam in self._connectedcamexp.values():
             log.debug('Stopping the camera %s.' % cam.camstr())
             cam.stopcam()
+			
+    def closealltemp(self):
+        """Close all temperature sensors in self._connectedtemp."""
+        try:
+            mydll = ctypes.windll.LoadLibrary(DLLPATH)
+            for hand in self._connectedtemp:
+                log.info("Closing temperature sensor with the handle %s" %hand)
+                mydll.usb_tc08_close_unit(int(hand))
+                log.info("Temperature sensor of handle %s has been closed." %hand)
+        except:
+            pass
         
