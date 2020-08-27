@@ -5,6 +5,7 @@
 
 import datalogger.analyser as analyser
 import datalogger.cameras as cam
+import datalogger.trigger as trig
 from datalogger.logsetup import log
 import numpy as np
 from xml.dom import minidom
@@ -21,9 +22,11 @@ DLLPATH = os.getcwd() + r'\loggerapp\datalogger\usbtc08.dll'
 
 class Exporter:
     """Abstract Exporter class, capable of exporting data to influx format"""
-    def __init__(self,type,sensor):
+    def __init__(self,type,sensor,trigger):
         self.type=type
+        self.trigger=trigger
         self.sensor=sensor
+        self.snapshot=False
         
         
     def getdata(self):
@@ -88,10 +91,10 @@ class Camexp:
     
 class Beam(Exporter):
     """Class for beam sensors, which have their own ROI settings and fit output datas"""
-    def __init__(self,cam,beam,roiparams):
+    def __init__(self,cam,beam,roiparams,trigger):
             self._cam=cam
             tpe=self._cam.camstr() + " " + str(beam)
-            super(Beam, self).__init__("camera",tpe)
+            super(Beam, self).__init__("camera",tpe,trigger)
             self.latestimage=None
             self.latestroi=None
             self.latestroiparams=None
@@ -115,16 +118,16 @@ class Beam(Exporter):
         if self.getcamman().hasimages:            
             self.IA.image=self._cam.getanimage()            
             try:
-                self.IA.setroi()
-                self.latestroiparams=(self.IA.roiposx,self.IA.roiposy,self.IA.roiimgwidth,self.IA.roiimgheight)
+                self.IA.setroi()                       
             except:
                 log.error('Could not set ROI of sensor %s, %s.' % (self.type,self.sensor))                           
             try:
                 fitdata=self.IA.getfitdata()
-                #first safes the latest image for fit data to be in sync with live cam view
-                self.latestimage=self.IA.image
-                self.latestroi=self.IA.roiimage
-                if not None in fitdata:                    
+                if not None in fitdata:
+                    #first safes the latest image for fit data to be in sync with live cam view
+                    self.latestimage=self.IA.image
+                    self.latestroi=self.IA.roiimage
+                    self.latestroiparams=(self.IA.roiposx,self.IA.roiposy,self.IA.roiimgwidth,self.IA.roiimgheight)
                     #then proceeds to return field values such as fit data and roi params in directionary format
                     lib={}
                     lib["hcenter"]=fitdata[0]
@@ -157,9 +160,9 @@ class Beam(Exporter):
     
 class Temperature(Exporter):
     """Class for temperature sensors"""
-    def __init__(self,dll,handle,tempid,tempsensors,channellist):
+    def __init__(self,dll,handle,tempid,tempsensors,trigger,channellist):
         if handle in tempsensors:
-            super(Temperature, self).__init__("temperature",str(tempid))
+            super(Temperature, self).__init__("temperature",str(tempid),trigger)
             self._dll=dll
             self._handle=handle
             self._channellist=channellist
@@ -243,6 +246,7 @@ class Sensormanager:
                         for beam in beamlist:
                             beamname=input("What name should beam number %i be logged as? " % (beam+1))
                             self._addcamerasensortoxml(miss[0],miss[1],beamname,"(0,0,100,100)")
+
                 if type(miss) is str:
                     log.info("The connected temperature sensor with the handle %s is not yet configured in sensorconfig.xml." % miss)
                     configurenow=input("Configure %s now? (y/n) " % miss)
@@ -390,13 +394,13 @@ class Sensormanager:
         for par in self._paramlist:
             if par['type']=='camera':
                 roipar=eval(par['roiparams'])
-                ret.append(Beam(self._connectedcamexp[(par['vendor'],par['camid'])],par['beam'],roipar))
+                ret.append(Beam(self._connectedcamexp[(par['vendor'],par['camid'])],par['beam'],roipar,trig.PeriodicTrigger(8.0)))
             if par['type']=='temperature':
                 channellist=[]
                 for i in range(0,9):
                     keystr='channel' + str(i+1)
                     channellist.append(par[keystr])    
-                ret.append(Temperature(ctypes.windll.LoadLibrary(DLLPATH),par['handle'],par['tempid'],self._connectedtemp,channellist))  
+                ret.append(Temperature(ctypes.windll.LoadLibrary(DLLPATH),par['handle'],par['tempid'],self._connectedtemp,trig.PeriodicTrigger(8.0),channellist))
         return ret
     
         
@@ -501,8 +505,8 @@ class Sensormanager:
         f=open('sensorconfig.xml','w')
         f.write(new_string)
         f.close()
-        
-    
+       
+      
     def _delcamerasensorfromxml(self,vendor,camid):
         """Edits sensorconfig.xml to delete camera with specified params."""
         et = ET.parse('sensorconfig.xml')

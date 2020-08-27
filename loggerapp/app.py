@@ -36,7 +36,7 @@ server = app.server
 
 ##
 
-guiint=im.Guiinterfacelogger(8.0)
+guiint=im.Guiinterfacelogger(0.01)
 
 
 #Keyboard interupt handling
@@ -173,10 +173,20 @@ app.layout = html.Div([
             dcc.Interval(
             id='interval-cam',
     # this is the refresh rate of the page initially set to the rate of the threader. It does not change, when the slider is moved
-            interval=guiint.getrate()*1000, 
+            interval=5*1000, 
             n_intervals=0
             )
         ],style={'columnCount':1}),
+        
+        html.Div([
+            html.H4('Create Snapshot right now:'),
+            html.Div([
+                html.Div([
+                    html.Button('Snapshot',id='snapshot-button',n_clicks=0)
+                ],className="twelve columns",style={'columnCount':1})
+            ], className='row'),
+            html.Div(id='snapshot-hidden',style={"display":"none"})
+        ], style={'backgroundColor':'rgb(250,250,250)'}),
         
         #ROI input Division
         
@@ -233,15 +243,16 @@ app.layout = html.Div([
                 ),
                 dcc.Slider(
                     id='rate-slider',
-                    min=1,
-                    max=20,
+                    min=0.0,
+                    max=2.0,
+                    step=0.01,
                     value=guiint.getrate(),
                     marks={
-                            1: {'label': '1 s', 'style': {'color': '#77b0b1'}},
-                            5: {'label': '5 s', 'style': {'color': '#77b0b1'}},
-                            10: {'label': '10 s', 'style': {'color': '#77b0b1'}},
-                            15: {'label': '15 s', 'style': {'color': '#77b0b1'}},
-                            20: {'label': '20 s', 'style': {'color': '#77b0b1'}}
+                            0: {'label': '0 s', 'style': {'color': '#77b0b1'}},
+                            0.4: {'label': '0.4 s', 'style': {'color': '#77b0b1'}},
+                            0.8: {'label': '0.8 s', 'style': {'color': '#77b0b1'}},
+                            1.2: {'label': '1.2 s', 'style': {'color': '#77b0b1'}},
+                            1.6: {'label': '1.6 s', 'style': {'color': '#77b0b1'}}
                         })
             
 
@@ -328,12 +339,24 @@ def update_output(on,rate):
     if on:
         guiint.thread.start()
         guiint.setrate(rate)
-        log.info("Data is being logged every %f seconds" % (guiint.getrate()))
-        return 'The datalogger is turned on and exporting every %f seconds' % (guiint.getrate())
+        log.info("Data logger is turned on at a frame rate of %f seconds" % (guiint.getrate()))
+        return 'The datalogger is turned on and set to a frame rate of %f seconds' % (guiint.getrate())
     else:
         guiint.thread.stop()
         log.info("Data is not being logged at the moment")
         return 'The datalogger is turned off'
+    
+    
+    
+@app.callback(
+    dash.dependencies.Output('snapshot-hidden','children'),
+    [dash.dependencies.Input('snapshot-button','n_clicks')]
+)
+
+def snapshot(n_clicks):
+    guiint.camviewer.getselectedcam().snapshot=True
+    log.info("A snapshot of the selected camera instance was just made.")
+
 
 
 

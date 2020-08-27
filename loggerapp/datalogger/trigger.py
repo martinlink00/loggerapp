@@ -4,6 +4,7 @@
 
 
 from time import time
+from datalogger.logsetup import log
 
 
 #############################
@@ -25,9 +26,10 @@ class PeriodicTrigger(Trigger):
         self._rate=rate
     
     def checktrigger(self):
-        if self._rate<time()-self._timecounter<self._rate+self._rate+0.01:
+        if self._rate<time()-self._timecounter:
             self._timecounter=time()
             return True
+        
         return False
     
         
