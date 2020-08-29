@@ -37,11 +37,9 @@ class Exporter:
     def exporttoinflux(self):
         dat=self.getdata()
         if dat is not None:
-            
             tags={}
-            tags["type"]=self.type
             tags["sensor"]=self.sensor
-            library={"measurement": "log","tags": tags,"fields": dat}
+            library={"measurement": self.type,"tags": tags,"fields": dat}
             exp=[]
             exp.append(library)
             return exp
@@ -425,7 +423,14 @@ class Sensormanager:
                 
     def getsensorlist(self):
         return self._sensorlist
-            
+    
+    
+    def getperiodiclist(self):
+        l=[]
+        for sensor in self._sensorlist:
+            if sensor.trigger.typ=="periodic":
+                l.append(sensor)
+        return l
     
     
     def _getnonconnectedsensors(self):
