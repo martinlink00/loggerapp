@@ -12,8 +12,8 @@ import datalogger.datalogger as datl
 
 def extractdatahist(client,beamselec,fieldselec,xrange):
     """Returns data from a client as tuple"""
-    res=client.query('select * from "log" where time <='+xrange[1]+' and time >='+xrange[0])
-    points=res.get_points(tags={'type':'camera','sensor':beamselec})
+    res=client.query('select * from "camera" where time <='+xrange[1]+' and time >='+xrange[0])
+    points=res.get_points(tags={'sensor':beamselec})
     d=[]
     t=[]
     
@@ -28,15 +28,16 @@ def extractdatahist(client,beamselec,fieldselec,xrange):
 
 def getlatestdata(client,beamselec):
     """Returns latest data entry of a client"""
-    res=client.query('SELECT * FROM "log" GROUP BY * ORDER BY DESC LIMIT 1')
-    points=res.get_points(tags={'type':'camera','sensor':beamselec})
+    res=client.query('SELECT * FROM "camera" GROUP BY * ORDER BY DESC LIMIT 1')
+    points=res.get_points(tags={'sensor':beamselec})
     for i in points:
         return i
 
 def sensorsindb(client,type):
     """Returns a list of all beam sensors of a client"""
-    res=client.query('SELECT * FROM "log"')
-    points=res.get_points(tags={'type':type})
+    queryst='SELECT * FROM "' + type + '"'
+    res=client.query(queryst)
+    points=res.get_points()
     l=[]
     for i in points:
         if i['sensor'] not in l:
@@ -45,7 +46,7 @@ def sensorsindb(client,type):
     return l
             
 
-def initiatedb(db="DB",host="localhost",port=8086):
+def initiatedb(db="LabLog",host="localhost",port=8086):
     """Returns a client with the active Database DB"""
     client=InfluxDBClient(host,port)
     #Note that client.create_database(db) does nothing if the Database db already exists
