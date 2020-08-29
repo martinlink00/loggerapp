@@ -36,7 +36,7 @@ server = app.server
 
 ##
 
-guiint=im.Guiinterfacelogger(0.01)
+guiint=im.Guiinterfacelogger(8)
 
 
 #Keyboard interupt handling
@@ -239,33 +239,35 @@ app.layout = html.Div([
                 daq.PowerButton(
                     id='loggerbutton',
                     on=False,
-                    size=50
+                    size=100
                 ),
                 dcc.Slider(
                     id='rate-slider',
-                    min=0.0,
-                    max=2.0,
-                    step=0.01,
+                    min=2,
+                    max=22,
+                    step=0.25,
                     value=guiint.getrate(),
                     marks={
-                            0: {'label': '0 s', 'style': {'color': '#77b0b1'}},
-                            0.4: {'label': '0.4 s', 'style': {'color': '#77b0b1'}},
-                            0.8: {'label': '0.8 s', 'style': {'color': '#77b0b1'}},
-                            1.2: {'label': '1.2 s', 'style': {'color': '#77b0b1'}},
-                            1.6: {'label': '1.6 s', 'style': {'color': '#77b0b1'}}
+                            2: {'label': '2 s', 'style': {'color': '#77b0b1'}},
+                            7: {'label': '7 s', 'style': {'color': '#77b0b1'}},
+                            12: {'label': '12 s', 'style': {'color': '#77b0b1'}},
+                            17: {'label': '17 s', 'style': {'color': '#77b0b1'}},
+                            22: {'label': '22 s', 'style': {'color': '#77b0b1'}}
                         })
             
 
             ], className="six columns"),
             
             html.Div([
-                html.Div(id='poweronoff')
+                html.Div(id='poweronoff'),
             ], className="six columns")
             
             
-        ], className="row")
+        ], className="row"),
 
 
+        html.H4('Log:'),
+        html.Div([html.Div(id='logfield'),dcc.Interval(id="interval_log",interval=1000, n_intervals=0)],style={'backgroundColor': 'rgb(230,230,230)',"whiteSpace": "pre-line"})
         
         
         
@@ -335,12 +337,11 @@ def manuallysetroi(n_clicks,roiinputx,roiinputy,roiinputw,roiinputh):
     dash.dependencies.Input('rate-slider', 'value')])
 
 def update_output(on,rate):
-
     if on:
         guiint.thread.start()
         guiint.setrate(rate)
-        log.info("Data logger is turned on at a frame rate of %f seconds" % (guiint.getrate()))
-        return 'The datalogger is turned on and set to a frame rate of %f seconds' % (guiint.getrate())
+        log.info("Data logger is turned on. Periodic sensors export every %f seconds." % (guiint.getrate()))
+        return 'The datalogger is turned on. Periodic sensors export every %f seconds.' % (guiint.getrate())
     else:
         guiint.thread.stop()
         log.info("Data is not being logged at the moment")
@@ -358,6 +359,32 @@ def snapshot(n_clicks):
     log.info("A snapshot of the selected camera instance was just made.")
 
 
+@app.callback(
+    dash.dependencies.Output('logfield','children'),
+    [dash.dependencies.Input('interval_log','n_intervals')]
+)
+
+def logupdate(n):
+    with open("datalogger.log", "r") as file:
+        i=0
+        lines_size = 20
+        last_lines = []
+        for line in file:
+            if i < lines_size:
+                last_lines.append(line)
+            else:
+                last_lines[i%lines_size] = line
+            i = i + 1
+ 
+    last_lines = last_lines[(i%lines_size):] + last_lines[:(i%lines_size)]
+
+    output=""
+
+    for line in last_lines:
+        output+=line
+       
+    
+    return output
 
 
 
