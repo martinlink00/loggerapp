@@ -38,7 +38,6 @@ server = app.server
 
 guiint=im.Guiinterfacelogger(8)
 
-
 #Keyboard interupt handling
 
 def keyboardInterruptHandler(signal, frame):
@@ -267,7 +266,7 @@ app.layout = html.Div([
 
 
         html.H4('Log:'),
-        html.Div([html.Div(id='logfield'),dcc.Interval(id="interval_log",interval=1000, n_intervals=0)],style={'backgroundColor': 'rgb(230,230,230)',"whiteSpace": "pre-line"})
+        html.Div([html.Div(id='logfield'),dcc.Interval(id="interval_log",interval=1000, n_intervals=0)],style={'backgroundColor': 'rgb(230,230,230)',"whiteSpace": "pre-wrap"})
         
         
         
@@ -355,8 +354,15 @@ def update_output(on,rate):
 )
 
 def snapshot(n_clicks):
-    guiint.camviewer.getselectedcam().snapshot=True
-    log.info("A snapshot of the selected camera instance was just made.")
+    if guiint.thread.has_thread():
+        guiint.camviewer.getselectedcam().snapshot=True
+    else:
+        guiint.camviewer.getselectedcam().snapshot=True
+        guiint.thread.start()
+        time.sleep(0.3)
+        guiint.thread.stop()
+        
+        
 
 
 @app.callback(
