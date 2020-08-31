@@ -153,6 +153,12 @@ class PeriodicTimer():
 
     def get_function(self):
         return self._worker_func
+    
+    def has_thread(self):
+        if self._thread is None:
+            return False
+        return True
+    
 
     def __call__(self):
         return self._worker_func(*self._args, **self._kwargs)
