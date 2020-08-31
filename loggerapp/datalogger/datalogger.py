@@ -25,9 +25,7 @@ class Exporter:
     def __init__(self,type,sensor,trigger):
         self.type=type
         self.trigger=trigger
-        self.sensor=sensor
-        self.snapshot=False
-        
+        self.sensor=sensor        
         
     def getdata(self):
         #in subclasses this will give the wanted result in a library
