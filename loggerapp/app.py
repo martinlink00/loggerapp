@@ -354,13 +354,7 @@ def update_output(on,rate):
 )
 
 def snapshot(n_clicks):
-    if guiint.thread.has_thread():
-        guiint.camviewer.getselectedcam().snapshot=True
-    else:
-        guiint.camviewer.getselectedcam().snapshot=True
-        guiint.thread.start()
-        time.sleep(0.3)
-        guiint.thread.stop()
+    guiint.snapshot()
         
         
 
