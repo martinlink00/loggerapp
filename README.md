@@ -12,16 +12,17 @@ LOGGERAPP README
 2. Database and usage
 
     - The Data storage works with InfluxDB. For more info on how to query and analyse data stored in Influx, see https://docs.influxdata.com/influxdb/v1.7/.
-    - Data is saved into a database right now running on localhost:8086 (see db_interface.initiatedb() for more info) called "DB". All logging measurements are written into the measurement "log". Each datapoint has two tags 'type' and 'sensor'.
-    - For camera sensors the type is set to 'camera', and the sensor is a string following the logic "vendor + ' ' + camid+ ' '+ instance". So for example an entry in the database could have the tags {'type':'camera', 'sensor':'vrm 123 incoming'}. Beam data is written using the float fields 'vcenter', 'hcenter', 'largewaist', 'smallwaist' and 'angle'.
+    - Data is saved into a database right now running on localhost:8086 (see db_interface.initiatedb() for more info) called "DB". Each datapoint has a tag called 'sensor'. For each sensor type ('camera', 'temperature' and so on), one corresponding measurement name exists.
+    - For camera sensors the measurement is called 'camera', and the sensor tag is a string following the logic "vendor + ' ' + camid+ ' '+ instance". So for example an entry in the database could have the tag {'sensor':'vrm 123 incoming'}. Beam data is written using the float fields 'vcenter', 'hcenter', 'largewaist', 'smallwaist' and 'angle'.
     - Note that one camera can have multiple measuring instances which all export fit data seperately. Each instance has their own ROI, which automatically "follows" the beams. It can also be manually moved in the GUI.
-    - For temperature sensors the type is set to 'temperature', and the sensor is a name assigned to a handle via the config file. So the tag dictionary might look like {'type':'temperature','sensor':'temperaturesensor123'}. Temperature data is written using float fields (e.g. 'channel1', 'channel2' and so on) which can also be modified in sensorconfig.xml.
+    - For temperature sensors the measurement is called 'temperature', and the sensor tag is a name assigned to a handle via the config file. So the tag dictionary might look like {'sensor':'temperaturesensor123'}. Temperature data is written using float fields (e.g. 'channel1', 'channel2' and so on) which can also be modified in sensorconfig.xml.
 
 
 3. GUI options
 
-    - The program allows the user to turn the datalogging process on and off, and set the rate at which data is exported to the database.
+    - The GUI allows the user to turn the datalogging process on and off, and set the rate at which periodically triggered sensors export to the database.
     - It also lets the user see the latest beam images and fit data from all connected cameras.
+    - Even when the program thread is not running, the user can create snapshots of the selected camera instance
 
     
 
