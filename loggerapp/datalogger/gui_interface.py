@@ -27,6 +27,12 @@ class Guiinterfacelogger:
         self.sensormngr=dat.Sensormanager()
         self._client=db.initiatedb(database,host,port)
         self.thread=Thread.PeriodicTimer(0,run.cycle,self.sensormngr.getsensorlist(),self._client)
+        
+    
+    def snapshot(self):
+        if self.camviewer.getselectedcam() is not None:
+            run.snapshot(self.camviewer.getselectedcam(),self._client)
+    
 
     def getrate(self):
         return self._rate
