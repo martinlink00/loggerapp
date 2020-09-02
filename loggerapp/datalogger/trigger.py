@@ -3,6 +3,7 @@
 #############################
 
 
+import nidaqmx
 from time import time
 from datalogger.logsetup import log
 
@@ -34,3 +35,23 @@ class PeriodicTrigger(Trigger):
             return True
         
         return False
+    
+
+class NationalTrigger(Trigger):
+    """National instruments DAQ Trigger."""
+    def __init__(self,channel,threshhold):
+        super(NationalTrigger,self).__init__("national")
+        self._channel=channel
+        self._threshhold=threshhold
+            
+    def checktrigger(self):
+        with nidaqmx.Task() as task:
+            task.ai_channels.add_ai_voltage_chan(self._channel)
+            output=task.read()
+        
+        if output>=self._threshhold:
+            return True
+        
+        return False
+        
+        
