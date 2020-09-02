@@ -6,6 +6,7 @@ LOGGERAPP README
     - Note that the GUI is only supposed to control the logging process. This was done to strictly seperate the database (possibly running on a server) from the logger app.
     - Connecting to the camera sensors is achieved by using the class 'cameras' from the beamprofiler program. Acquiring fit data by the cameras also built upon the preexisting class 'analyser', which was modified for this use case
     - Connecting to the temperature sensors was achieved by modifying the preexisting temperature logging program. A good guideline for the usage of the temperature sensor can be found here: https://www.picotech.com/download/manuals/usb-tc08-thermocouple-data-logger-programmers-guide.pdf.
+    - Triggering, as well as further data aquisition was done using NI-DAQmx. Documentation can be found here: https://nidaqmx-python.readthedocs.io/en/latest/.
     
     
 
@@ -30,6 +31,7 @@ LOGGERAPP README
 4. Setup
     1. Install required modules and influx
         - Install InfluxDB from https://www.influxdata.com/
+        - Install NI-DAQmx from https://www.ni.com/de-de/support/downloads/drivers/download.ni-daqmx.html#348669
         - Install all camera drivers in the loggerapp/datalogger/driver folder
         - Open a command prompt and change the directory to where the program was copied
         - Run "pip install -r requirements.txt"
