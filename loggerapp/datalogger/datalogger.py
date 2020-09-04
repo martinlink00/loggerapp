@@ -390,7 +390,7 @@ class Sensormanager:
         for par in self._paramlist:
             if par['type']=='camera':
                 roipar=eval(par['roiparams'])
-                ret.append(Beam(self._connectedcamexp[(par['vendor'],par['camid'])],par['beam'],roipar,trig.PeriodicTrigger(8.0)))
+                ret.append(Beam(self._connectedcamexp[(par['vendor'],par['camid'])],par['beam'],roipar,trig.NationalTrigger("Dev1/ai1",3.0)))
             if par['type']=='temperature':
                 channellist=[]
                 for i in range(0,9):
