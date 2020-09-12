@@ -12,6 +12,7 @@ from xml.dom import minidom
 import xml.etree.ElementTree as ET
 import ctypes
 import os
+import nidaqmx
 
 
 #################################################################################################
@@ -187,9 +188,35 @@ class Temperature(Exporter):
             lib[st]=temp[i]
             
         return lib
+
+
+
+
+class NIAnalog(Exporter):
+    """Class for NI analog power sensors"""
+    def __init__(self,dev,trigger):
+        super(NIAnalog, self).__init__("nianalog",dev,trigger)
+        self._devstring = dev
+        
+        
+    def getdata(self):
+        """Export data field in dictionary format"""
+        lib={}
+        for i in range(0,10):
+            channelstring = self._devstring + "/ai" + str(i)
+            with nidaqmx.Task() as task:
+                task.ai_channels.add_ai_voltage_chan(channelstring)
+                output=task.read()
+            lib["Channel" + str(i)]=output
+        return lib
         
     
-         
+    
+    
+    
+    
+    
+    
         
 class Sensormanager:
     """This class reads the config file 'sensorconfig.xml' and initiates all sensors."""
@@ -200,6 +227,8 @@ class Sensormanager:
         self._connectedcams=self._connectedcams()
         
         self._connectedtemp=self._initiatetemplist()
+        
+        self._connectedni=self._initiateni()
         
         self._paramlist=self._paramfromfile()
         
@@ -348,6 +377,22 @@ class Sensormanager:
         return templist
            
     
+    
+    def _initiateni(self):
+        """Finds all nidaqmx devices and returns device key."""
+        try:
+            system = nidaqmx.system.System.local()
+            devlist = system.devices
+            devstrlist=[]
+            for device in devlist:
+                devstrlist.append(device.name)
+            return devstrlist
+        except:
+            return []
+        
+        
+        
+    
     def _paramfromfile(self):
         """Reads XML file and creates dictionary for parameters."""
         xmldoc = minidom.parse('sensorconfig.xml')
@@ -368,6 +413,8 @@ class Sensormanager:
                 for i in range(0,9):
                     keystr='channel'+ str(i+1)
                     r[keystr]=att[keystr].value
+            elif r['type']=='nianalog':
+                r['devstr']==att['devstr'].value
 
             paramlist.append(r)
         return paramlist
@@ -397,6 +444,14 @@ class Sensormanager:
                     keystr='channel' + str(i+1)
                     channellist.append(par[keystr])    
                 ret.append(Temperature(ctypes.windll.LoadLibrary(DLLPATH),par['handle'],par['tempid'],self._connectedtemp,trig.PeriodicTrigger(8.0),channellist))
+            
+            if par['type']=='nianalog':
+                if par["devstr"] in self._connectedni:
+                    ret.append(NIAnalog(par["devstr"],PeriodicTrigger(8.0)))
+                else:
+                    log.error("The NI device with the devkey %s does not seem to be connected." % par["devstr"])
+                
+        
         return ret
     
         
@@ -446,7 +501,7 @@ class Sensormanager:
                 over.append(curr)
             if not self._connectedtemp is None:
                 if not curr in self._connectedtemp:
-                    over.append(curr)
+                    over.append(curr)            
         return over
         
     
@@ -561,7 +616,7 @@ class Sensormanager:
         for cam in self._connectedcamexp.values():
             log.debug('Stopping the camera %s.' % cam.camstr())
             cam.stopcam()
-			
+
     def closealltemp(self):
         """Close all temperature sensors in self._connectedtemp."""
         try:
