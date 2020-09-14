@@ -296,6 +296,8 @@ class Sensormanager:
         
         self._sensorlist=self._initiatesensorlist()
         
+        self._sensordict=self._initiatesensordict()
+        
         
     
     def _initiatecamlist(self):
@@ -437,17 +439,17 @@ class Sensormanager:
         for par in self._paramlist:
             if par['type']=='camera':
                 roipar=eval(par['roiparams'])
-                ret.append(Beam(self._connectedcamexp[(par['vendor'],par['camid'])],par['beam'],roipar,trig.NationalTrigger("Dev1/ai1",3.0)))
+                ret.append(Beam(self._connectedcamexp[(par['vendor'],par['camid'])],par['beam'],roipar,'national'))
             if par['type']=='temperature':
                 channellist=[]
                 for i in range(0,9):
                     keystr='channel' + str(i+1)
                     channellist.append(par[keystr])    
-                ret.append(Temperature(ctypes.windll.LoadLibrary(DLLPATH),par['handle'],par['tempid'],self._connectedtemp,trig.PeriodicTrigger(8.0),channellist))
+                ret.append(Temperature(ctypes.windll.LoadLibrary(DLLPATH),par['handle'],par['tempid'],self._connectedtemp,'periodic',channellist))
             
             if par['type']=='nianalog':
                 if par["devstr"] in self._connectedni:
-                    ret.append(NIAnalog(par["devstr"],trig.PeriodicTrigger(8.0)))
+                    ret.append(NIAnalog(par["devstr"],trig.'national'))
                 else:
                     log.error("The NI device with the devkey %s does not seem to be connected." % par["devstr"])
                 
@@ -478,10 +480,27 @@ class Sensormanager:
         return self._sensorlist
     
     
+    def getsensordict(self):
+        return self._sensordict
+    
+    
+    def _initiatesensordict(self):
+        nationallist=[]
+        periodiclist=[]
+        
+        for sensor in self._sensorlist:
+            if sensor.trigger=='national':
+                nationallist.append(sensor)
+            if sensor.trigger=='periodic':
+                periodiclist.append(sensor)
+                
+        return {trig.NationalTrigger('Dev2/ai0',3.0):nationallist, trig.PeriodicTrigger(8.0):periodiclist}
+        
+    
     def getperiodiclist(self):
         l=[]
         for sensor in self._sensorlist:
-            if sensor.trigger.typ=="periodic":
+            if sensor.trigger=="periodic":
                 l.append(sensor)
         return l
     
