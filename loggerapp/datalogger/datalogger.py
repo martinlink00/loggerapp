@@ -414,7 +414,7 @@ class Sensormanager:
                     keystr='channel'+ str(i+1)
                     r[keystr]=att[keystr].value
             elif r['type']=='nianalog':
-                r['devstr']==att['devstr'].value
+                r['devstr']=att['devstr'].value
 
             paramlist.append(r)
         return paramlist
