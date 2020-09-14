@@ -447,7 +447,7 @@ class Sensormanager:
             
             if par['type']=='nianalog':
                 if par["devstr"] in self._connectedni:
-                    ret.append(NIAnalog(par["devstr"],PeriodicTrigger(8.0)))
+                    ret.append(NIAnalog(par["devstr"],trig.PeriodicTrigger(8.0)))
                 else:
                     log.error("The NI device with the devkey %s does not seem to be connected." % par["devstr"])
                 
