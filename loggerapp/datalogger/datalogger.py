@@ -202,7 +202,7 @@ class NIAnalog(Exporter):
     def getdata(self):
         """Export data field in dictionary format"""
         lib={}
-        for i in range(0,10):
+        for i in range(0,6):
             channelstring = self._devstring + "/ai" + str(i)
             with nidaqmx.Task() as task:
                 task.ai_channels.add_ai_voltage_chan(channelstring)
@@ -496,13 +496,19 @@ class Sensormanager:
                 current.append(tup)
             if par["type"]=="temperature":
                 current.append(par["handle"])
-        for curr in current:
-            if not curr in self._connectedcams:
-                over.append(curr)
-            if not self._connectedtemp is None:
-                if not curr in self._connectedtemp:
-                    over.append(curr)            
-        return over
+                
+        currentset=set(current)
+        if not self._connectedcams is None:
+            camintersection=currentset.intersection(self._connectedcams)
+            for cam in list(camintersection):
+                currentset.remove(cam)
+
+        if not self._connectedtemp is None:
+            tempintersection=currentset.intersection(self._connectedtemp)
+            for temp in list(tempintersection):
+                currentset.remove(temp)
+
+        return list(currentset)
         
     
     def _getmissingsensors(self):
