@@ -449,7 +449,7 @@ class Sensormanager:
             
             if par['type']=='nianalog':
                 if par["devstr"] in self._connectedni:
-                    ret.append(NIAnalog(par["devstr"],trig.'national'))
+                    ret.append(NIAnalog(par["devstr"],'national'))
                 else:
                     log.error("The NI device with the devkey %s does not seem to be connected." % par["devstr"])
                 
