@@ -12,17 +12,19 @@ from time import time
 
 
 def cycle(sensors,client):
-        for sensor in sensors:
-            if sensor.trigger.checktrigger():
+    #sensors: dictionary of the format {'triggertype':sensorlist}
+    for trigger in sensors.keys():
+        if trigger.checktrigger():
+            for sensor in sensors[trigger]:
                 starttime=time()
                 sensordata=sensor.exporttoinflux()
                 if sensordata is not None:
                     client.write_points(sensordata)
                     endtime=time()
-                    log.info("Sensor %s of type %s has exported data via a %s trigger. This took %f seconds." % (sensor.sensor,sensor.type,sensor.trigger.typ,endtime-starttime))
+                    log.info("Sensor %s of type %s has exported data via a %s trigger. This took %f seconds." % (sensor.sensor,sensor.type,sensor.trigger,endtime-starttime))
                 else:
                     log.warning("Sensor %s of type %s could not export data" % (sensor.sensor,sensor.type))
-            
+
 
             
             
