@@ -26,7 +26,7 @@ class Guiinterfacelogger:
         self._rate=rate
         self.sensormngr=dat.Sensormanager()
         self._client=db.initiatedb(database,host,port)
-        self.thread=Thread.PeriodicTimer(0,run.cycle,self.sensormngr.getsensorlist(),self._client)
+        self.thread=Thread.PeriodicTimer(0,run.cycle,self.sensormngr.getsensordict(),self._client)
         
     
     def snapshot(self):
@@ -301,14 +301,3 @@ class Camviewer:
             shortroifit=self._selectedcam.IA.shortroifit
             
             return hroiprof, hroifit, vroiprof, vroifit, longroiprof, longroifit, shortroiprof, shortroifit
-        
-
-    
-
-        
-
-        
-    
-        
-        
-        
