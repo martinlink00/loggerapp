@@ -1,0 +1,10 @@
+<triggers>
+    <trigger>
+        <type>national</type>
+        <parameters channel="Dev2/ai0" threshhold="3.0" />
+    </trigger>
+    <trigger>
+        <type>periodic</type>
+        <parameters rate="8.0"/>
+    </trigger>
+</triggers>
