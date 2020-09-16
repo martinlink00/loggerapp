@@ -236,30 +236,38 @@ class Sensormanager:
         
         self._overlyconfigured=self._getnonconnectedsensors()
         
-        if len(self._overlyconfigured)!=0:
-            for ov in self._overlyconfigured:
-                if type(ov) is tuple:
-                    log.info("The connected camera %s %s is mentioned in sensorconfig.xml and yet does not seem to be connected." % ov)
-                    delnow=input("Delete camera %s %s from sensorconfig.xml? (y/n)" % ov)
+        #Rewrite sensorxml file
+    
+        for ov in self._overlyconfigured.keys():
+            if ov=="camera":
+                for cam in self._overlyconfigured[ov]:
+                    log.info("The connected camera %s %s is mentioned in sensorconfig.xml and yet does not seem to be connected." % cam)
+                    delnow=input("Delete camera %s %s from sensorconfig.xml? (y/n)" % cam)
                     if delnow=="y":
-                        self._delcamerasensorfromxml(ov[0],ov[1])
-                        log.info("Camera %s %s was deleted from sensorconfig.xml." % ov)
-                if type(ov) is str:
-                    log.info("The connected temperature sensor %s is mentioned in sensorconfig.xml and yet does not seem to be connected." % ov)
-                    delnow=input("Delete temperature sensor with the handle %s from sensorconfig.xml? (y/n)" % ov)
+                        self._delcamerasensorfromxml(cam[0],cam[1])
+                        log.info("Camera %s %s was deleted from sensorconfig.xml." % cam)
+            if ov=="temperature":
+                for temp in self._overlyconfigured[ov]:
+                    log.info("The connected temperature sensor %s is mentioned in sensorconfig.xml and yet does not seem to be connected." % temp)
+                    delnow=input("Delete temperature sensor with the handle %s from sensorconfig.xml? (y/n)" % temp)
                     if delnow=="y":
-                        self._deltempsensorfromxml(ov)
-                        log.info("Temperature sensor with the handle %s was deleted from sensorconfig.xml." % ov)
+                        self._deltempsensorfromxml(temp)
+                        log.info("Temperature sensor with the handle %s was deleted from sensorconfig.xml." % temp)
+            if ov=="nianalog":
+                for ni in self._overlyconfigured[ov]:
+                    log.info("The connected national instruments sensor %s is mentioned in sensorconfig.xml and yet does not seem to be connected." % ni)
+                    delnow=input("Delete national instruments sensor with the devstring %s from sensorconfig.xml? (y/n)" % ni)
+                    if delnow=="y":
+                        self._delnisensorfromxml(ni)
+                        log.info("National instruments sensor with the handle %s was deleted from sensorconfig.xml." % ni)
 
             
             
-        
-        if len(self._tobeconfigured)!=0:
-            #Rewrite sensorxml file
-            for miss in self._tobeconfigured:
-                if type(miss) is tuple:
-                    log.info("The connected camera %s %s is not yet configured in sensorconfig.xml." % miss)
-                    configurenow=input("Configure %s %s now? (y/n) "% miss)
+        for miss in self._tobeconfigured.keys():
+            if miss=="camera":
+                for cam in self._tobeconfigured[miss]:
+                    log.info("The connected camera %s %s is not yet configured in sensorconfig.xml." % cam)
+                    configurenow=input("Configure %s %s now? (y/n) "% cam)
                     if configurenow=="y":
                         nobeams=input("How many beams are tracked with this camera? ")
                         try:
@@ -268,13 +276,13 @@ class Sensormanager:
                             log.error("Bad input. Config process stopped.")
                             break
                         
-                        for beam in beamlist:
-                            beamname=input("What name should beam number %i be logged as? " % (beam+1))
-                            self._addcamerasensortoxml(miss[0],miss[1],beamname,"(0,0,100,100)")
-
-                if type(miss) is str:
-                    log.info("The connected temperature sensor with the handle %s is not yet configured in sensorconfig.xml." % miss)
-                    configurenow=input("Configure %s now? (y/n) " % miss)
+                    for beam in beamlist:
+                        beamname=input("What name should beam number %i be logged as? " % (beam+1))
+                        self._addcamerasensortoxml(cam[0],cam[1],beamname,"(0,0,100,100)")
+            if miss=="temperature":
+                for temp in self._tobeconfigured[miss]:
+                    log.info("The connected temperature sensor with the handle %s is not yet configured in sensorconfig.xml." % temp)
+                    configurenow=input("Configure %s now? (y/n) " % temp)
                     if configurenow=="y":
                         tempid=input("What name should this sensor be logged as? ")
                         defaultlist=[]
@@ -282,6 +290,12 @@ class Sensormanager:
                             st='Channel '+ str(i+1)
                             defaultlist.append(st)
                         self._addtempsensortoxml(tempid,miss,defaultlist)
+            if miss=="nianalog":
+                for ni in self._tobeconfigured[miss]:
+                    log.info("The connected national instruments sensor with the devstring %s is not yet mentioned in sensorconfig.xml. " % ni)
+                    configurenow=input("Configure %s now? (y/n) " % ni)
+                    if configurenow=="y":
+                        self._addnisensortoxml(ni)
                         
             
         #Reread edited xml file
@@ -507,46 +521,72 @@ class Sensormanager:
     
     def _getnonconnectedsensors(self):
         """Get all sensors, which are specified in sensorconfig.xml, yet not connected."""
-        current=[]
-        over=[]
+        currentcams=[]
+        currenttemp=[]
+        currentni=[]
+        overcams=[]
+        overtemp=[]
+        overni=[]
         for par in self._paramlist:
             if par["type"]=="camera":
-                tup = (par["vendor"],par["camid"])
-                current.append(tup)
+                currentcams.append((par["vendor"],par["camid"]))
             if par["type"]=="temperature":
-                current.append(par["handle"])
-                
-        currentset=set(current)
+                currenttemp.append(par["handle"])
+            if par["type"]=="nianalog":
+                currentni.append(par["devstr"])
+        
+        currentcamsset=set(currentcams)
+        currenttempset=set(currenttemp)
+        currentniset=set(currentni)
+        
         if not self._connectedcams is None:
-            camintersection=currentset.intersection(self._connectedcams)
+            camintersection=currentcamsset.intersection(self._connectedcams)
             for cam in list(camintersection):
-                currentset.remove(cam)
+                currentcamsset.remove(cam)
 
         if not self._connectedtemp is None:
-            tempintersection=currentset.intersection(self._connectedtemp)
+            tempintersection=currenttempset.intersection(self._connectedtemp)
             for temp in list(tempintersection):
-                currentset.remove(temp)
-
-        return list(currentset)
+                currenttempset.remove(temp)
+                
+        if not self._connectedni is None:
+            niintersection=currentniset.intersection(self._connectedni)
+            for ni in list(niintersection):
+                currentniset.remove(ni)
+        
+        missing={"camera":list(currentcamsset),"temperature":list(currenttempset),"nianalog":list(currentniset)}
+        
+        return missing
         
     
     def _getmissingsensors(self):
         """Get all connected sensors, which are not specified in sensorconfig.xml"""
-        current=[]
-        missing=[]
+        currentcams=[]
+        currenttemp=[]
+        currentni=[]
+        missingcams=[]
+        missingtemp=[]
+        missingni=[]
         for par in self._paramlist:
             if par["type"]=="camera":
-                tup = (par["vendor"],par["camid"])
-                current.append(tup)
+                currentcams.append((par["vendor"],par["camid"]))
             if par["type"]=="temperature":
-                current.append(par["handle"])
+                currenttemp.append(par["handle"])
+            if par["type"]=="nianalog":
+                currentni.append(par["devstr"])
+                
         for cam in self._connectedcams:
-            if not cam in current:
-                missing.append(cam)
+            if not cam in currentcams:
+                missingcams.append(cam)
         if not self._connectedtemp is None:
             for temp in self._connectedtemp:
-                if not temp in current:
-                    missing.append(temp)
+                if not temp in currenttemp:
+                    missingtemp.append(temp)
+        if not self._connectedni:
+            for ni in self._connectedni:
+                if not ni in currentni:
+                    missingni.append(ni)
+        missing={"camera":missingcams, "temperature":missingtemp,"nianalog":missingni}
         return missing
         
         
@@ -589,7 +629,24 @@ class Sensormanager:
         f.write(new_string)
         f.close()
        
-      
+    def _addnisensortoxml(self,devstr):
+        """Edits sensorconfig.xml to add a national instruments sensor with devstring devstr."""
+        et = ET.parse('sensorconfig.xml')
+        new_sensor_tag = ET.SubElement(et.getroot(), 'sensor')
+        type_tag = ET.SubElement(new_sensor_tag, 'type')
+        type_tag.text = "nianalog"
+        param_tag = ET.SubElement(new_sensor_tag, 'parameters')
+        param_tag.attrib = {'devstr':devstr}
+        rough_string = ET.tostring(et.getroot(), 'utf-8')
+        rough_string = rough_string.replace(b"\n",b"")
+        rough_string = rough_string.replace(b"\t",b"")
+        rough_string = rough_string.replace(b"  ",b"")
+        reparsed = minidom.parseString(rough_string)
+        new_string = reparsed.toprettyxml(indent="\t")
+        f=open('sensorconfig.xml','w')
+        f.write(new_string)
+        f.close()
+    
     def _delcamerasensorfromxml(self,vendor,camid):
         """Edits sensorconfig.xml to delete camera with specified params."""
         et = ET.parse('sensorconfig.xml')
@@ -633,6 +690,26 @@ class Sensormanager:
         f.write(new_string)
         f.close()
         
+        
+    def _delnisensorfromxml(self,devstr):
+        """Edits sensorconfig.xml to delete national instruments sensor with devstring devstr."""
+        et = ET.parse('sensorconfig.xml')
+        for sensor in et.findall('sensor'):
+            for sub in sensor.findall('type'):
+                if sub.text=='nianalog':
+                    for subel in sensor.findall('parameters'):
+                        if subel.attrib['devstr']==devstr:
+                            et.getroot().remove(sensor)
+
+        rough_string = ET.tostring(et.getroot(), 'utf-8')
+        rough_string = rough_string.replace(b"\n",b"")
+        rough_string = rough_string.replace(b"\t",b"")
+        rough_string = rough_string.replace(b"  ",b"")
+        reparsed = minidom.parseString(rough_string)
+        new_string = reparsed.toprettyxml(indent="\t")
+        f=open('sensorconfig.xml','w')
+        f.write(new_string)
+        f.close()
         
         
         
