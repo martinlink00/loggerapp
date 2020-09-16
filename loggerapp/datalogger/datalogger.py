@@ -232,6 +232,8 @@ class Sensormanager:
         
         self._paramlist=self._paramfromfile()
         
+        self._triggerconf=self._triggerfromfile()
+        
         self._tobeconfigured=self._getmissingsensors()
         
         self._overlyconfigured=self._getnonconnectedsensors()
@@ -300,11 +302,10 @@ class Sensormanager:
             
         #Reread edited xml file
         self._paramlist=self._paramfromfile()
+        
         self._tobeconfigured=[]
-        self._overlyconfigured=[]
-                    
-            
-                        
+        
+        self._overlyconfigured=[]          
         
         self._connectedcamexp=self._initiatecamexpdict()
         
@@ -436,6 +437,24 @@ class Sensormanager:
         return paramlist
     
     
+    
+    def _triggerfromfile(self):
+        """Reads XML file and returns tuple with (periodic trigger, national trigger)."""
+        xmldoc = minidom.parse('triggerconfig.xml')
+        triggerlist = xmldoc.getElementsByTagName('trigger')
+        triggerdict={}
+        for trigger in triggerlist:
+            triggertype=trigger.getElementsByTagName('type')[0].firstChild.nodeValue
+            att=trigger.getElementsByTagName('parameters')[0].attributes
+            if triggertype=='national':
+                triggerdict['national']=trig.NationalTrigger(att['channel'].value,att['threshhold'].value)
+            if triggertype=='periodic':
+                triggerdict['periodic']=trig.PeriodicTrigger(att['rate'].value)
+        return triggerdict
+    
+    
+    
+    
     def _initiatecamexpdict(self):
         """Returns dictionary of Camexp objects corresponding to cameras in the paramlist."""
         camexps = {}
@@ -470,7 +489,20 @@ class Sensormanager:
         
         return ret
     
+    
+    
+    def _initiatesensordict(self):
+        nationallist=[]
+        periodiclist=[]
         
+        for sensor in self._sensorlist:
+            if sensor.trigger=='national':
+                nationallist.append(sensor)
+            if sensor.trigger=='periodic':
+                periodiclist.append(sensor)
+                
+        return {self._triggerconf['national']:nationallist, self._triggerconf['periodic']:periodiclist}
+    
 
     def getcameraliststring(self):
         """Returns list of strings for all cameras following the logic type + sensor."""
@@ -493,23 +525,8 @@ class Sensormanager:
     def getsensorlist(self):
         return self._sensorlist
     
-    
     def getsensordict(self):
-        return self._sensordict
-    
-    
-    def _initiatesensordict(self):
-        nationallist=[]
-        periodiclist=[]
-        
-        for sensor in self._sensorlist:
-            if sensor.trigger=='national':
-                nationallist.append(sensor)
-            if sensor.trigger=='periodic':
-                periodiclist.append(sensor)
-                
-        return {trig.NationalTrigger('Dev2/ai0',3.0):nationallist, trig.PeriodicTrigger(8.0):periodiclist}
-        
+        return self._sensordict    
     
     def getperiodiclist(self):
         l=[]
