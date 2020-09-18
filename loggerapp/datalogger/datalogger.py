@@ -194,9 +194,10 @@ class Temperature(Exporter):
 
 class NIAnalog(Exporter):
     """Class for NI analog power sensors"""
-    def __init__(self,dev,trigger):
+    def __init__(self,dev,trigger,channellist):
         super(NIAnalog, self).__init__("nianalog",dev,trigger)
         self._devstring = dev
+        self._channellist=channellist
         
         
     def getdata(self):
@@ -207,7 +208,7 @@ class NIAnalog(Exporter):
             with nidaqmx.Task() as task:
                 task.ai_channels.add_ai_voltage_chan(channelstring)
                 output=task.read()
-            lib["Channel" + str(i)]=output
+            lib[self._channellist[i]]=output
         return lib
         
     
@@ -297,7 +298,11 @@ class Sensormanager:
                     log.info("The connected national instruments sensor with the devstring %s is not yet mentioned in sensorconfig.xml. " % ni)
                     configurenow=input("Configure %s now? (y/n) " % ni)
                     if configurenow=="y":
-                        self._addnisensortoxml(ni)
+                        defaultlist=[]
+                        for i in range(0,6):
+                            st='Channel '+ str(i+1)
+                            defaultlist.append(st)
+                        self._addnisensortoxml(ni,defaultlist)
                         
             
         #Reread edited xml file
@@ -403,6 +408,7 @@ class Sensormanager:
             devstrlist=[]
             for device in devlist:
                 devstrlist.append(device.name)
+                log.info("NI device with the devstring %s was encountered." % device.name)
             return devstrlist
         except:
             return []
@@ -432,7 +438,9 @@ class Sensormanager:
                     r[keystr]=att[keystr].value
             elif r['type']=='nianalog':
                 r['devstr']=att['devstr'].value
-
+                for i in range(0,6):
+                    keystr='channel'+ str(i+1)
+                    r[keystr]=att[keystr].value
             paramlist.append(r)
         return paramlist
     
@@ -482,7 +490,11 @@ class Sensormanager:
             
             if par['type']=='nianalog':
                 if par["devstr"] in self._connectedni:
-                    ret.append(NIAnalog(par["devstr"],'national'))
+                    channellist=[]
+                    for i in range(0,6):
+                        keystr='channel' + str(i+1)
+                        channellist.append(par[keystr])
+                    ret.append(NIAnalog(par["devstr"],'national',channellist))
                 else:
                     log.error("The NI device with the devkey %s does not seem to be connected." % par["devstr"])
                 
@@ -599,7 +611,7 @@ class Sensormanager:
             for temp in self._connectedtemp:
                 if not temp in currenttemp:
                     missingtemp.append(temp)
-        if not self._connectedni:
+        if not self._connectedni is None:
             for ni in self._connectedni:
                 if not ni in currentni:
                     missingni.append(ni)
@@ -646,7 +658,7 @@ class Sensormanager:
         f.write(new_string)
         f.close()
        
-    def _addnisensortoxml(self,devstr):
+    def _addnisensortoxml(self,devstr,channelnamelist):
         """Edits sensorconfig.xml to add a national instruments sensor with devstring devstr."""
         et = ET.parse('sensorconfig.xml')
         new_sensor_tag = ET.SubElement(et.getroot(), 'sensor')
@@ -654,6 +666,9 @@ class Sensormanager:
         type_tag.text = "nianalog"
         param_tag = ET.SubElement(new_sensor_tag, 'parameters')
         param_tag.attrib = {'devstr':devstr}
+        for i in range(0,6):
+            keystr='channel' + str(i+1)
+            param_tag.attrib[keystr]=channelnamelist[i]
         rough_string = ET.tostring(et.getroot(), 'utf-8')
         rough_string = rough_string.replace(b"\n",b"")
         rough_string = rough_string.replace(b"\t",b"")
