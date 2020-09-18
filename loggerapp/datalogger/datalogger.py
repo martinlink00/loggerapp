@@ -278,9 +278,9 @@ class Sensormanager:
                             log.error("Bad input. Config process stopped.")
                             break
                         
-                    for beam in beamlist:
-                        beamname=input("What name should beam number %i be logged as? " % (beam+1))
-                        self._addcamerasensortoxml(cam[0],cam[1],beamname,"(0,0,100,100)")
+                        for beam in beamlist:
+                            beamname=input("What name should beam number %i be logged as? " % (beam+1))
+                            self._addcamerasensortoxml(cam[0],cam[1],beamname,"(0,0,100,100)")
             if miss=="temperature":
                 for temp in self._tobeconfigured[miss]:
                     log.info("The connected temperature sensor with the handle %s is not yet configured in sensorconfig.xml." % temp)
@@ -447,9 +447,9 @@ class Sensormanager:
             triggertype=trigger.getElementsByTagName('type')[0].firstChild.nodeValue
             att=trigger.getElementsByTagName('parameters')[0].attributes
             if triggertype=='national':
-                triggerdict['national']=trig.NationalTrigger(att['channel'].value,att['threshhold'].value)
+                triggerdict['national']=trig.NationalTrigger(att['channel'].value,float(att['threshhold'].value))
             if triggertype=='periodic':
-                triggerdict['periodic']=trig.PeriodicTrigger(att['rate'].value)
+                triggerdict['periodic']=trig.PeriodicTrigger(float(att['rate'].value))
         return triggerdict
     
     
