@@ -371,7 +371,7 @@ class Sensormanager:
             id=mydll.usb_tc08_open_unit() #Returns device handle, or 0 if no device was found, or -1 if an error occured
             if id!=-1:
                 if id!=0:
-                    log.info("Temperature sensor of handle %i encountered.")
+                    log.info("Temperature sensor of handle %i encountered." % id)
                     templist.append(str(id))
                     devlist.append(id)
             else:
