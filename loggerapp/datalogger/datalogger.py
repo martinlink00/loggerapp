@@ -447,9 +447,9 @@ class Sensormanager:
             triggertype=trigger.getElementsByTagName('type')[0].firstChild.nodeValue
             att=trigger.getElementsByTagName('parameters')[0].attributes
             if triggertype=='national':
-                triggerdict['national']=trig.NationalTrigger(att['channel'].value,float(att['threshhold'].value))
+                triggerdict['national']=trig.NationalTrigger(att['channel'].value,float(att['threshhold'].value),float(att['timeout'].value))
             if triggertype=='periodic':
-                triggerdict['periodic']=trig.PeriodicTrigger(float(att['rate'].value))
+                triggerdict['periodic']=trig.PeriodicTrigger(float(att['rate'].value),float(att['timeout'].value))
         return triggerdict
     
     
