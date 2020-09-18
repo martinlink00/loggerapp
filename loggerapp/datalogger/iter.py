@@ -6,6 +6,7 @@
 from influxdb import InfluxDBClient
 from datalogger.logsetup import log
 from time import time
+from time import sleep
 
 
 #############################################################
@@ -24,6 +25,7 @@ def cycle(sensors,client):
                     log.info("Sensor %s of type %s has exported data via a %s trigger. This took %f seconds." % (sensor.sensor,sensor.type,sensor.trigger,endtime-starttime))
                 else:
                     log.warning("Sensor %s of type %s could not export data" % (sensor.sensor,sensor.type))
+            sleep(trigger.timeout)
 
 
             
