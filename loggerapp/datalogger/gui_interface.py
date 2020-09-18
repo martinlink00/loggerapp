@@ -26,18 +26,23 @@ class Guiinterfacelogger:
         self._rate=rate
         self.sensormngr=dat.Sensormanager()
         self._client=db.initiatedb(database,host,port)
-        self.thread=Thread.PeriodicTimer(self._rate,run.cycle,self.sensormngr.getsensorlist(),self._client)
+        self.thread=Thread.PeriodicTimer(0,run.cycle,self.sensormngr.getsensordict(),self._client)
+        
+    
+    def snapshot(self):
+        if self.camviewer.getselectedcam() is not None:
+            run.snapshot(self.camviewer.getselectedcam(),self._client)
+    
 
     def getrate(self):
         return self._rate
     
     def setrate(self,rate):
-        """Changes the period of the threader, only works if thread was running beforehand"""
+        """Changes the rate at which periodic sensors are exporting"""
         if self._rate!=rate:
-            self.thread.stop()
             self._rate=rate
-            self.thread=Thread.PeriodicTimer(self._rate,run.cycle,self.sensormngr.getsensorlist(),self._client)
-            self.thread.start()
+            for sens in self.sensormngr.getperiodiclist():
+                sens.trigger.setrate(rate)
         else:
             pass
 
@@ -296,14 +301,3 @@ class Camviewer:
             shortroifit=self._selectedcam.IA.shortroifit
             
             return hroiprof, hroifit, vroiprof, vroifit, longroiprof, longroifit, shortroiprof, shortroifit
-        
-
-    
-
-        
-
-        
-    
-        
-        
-        

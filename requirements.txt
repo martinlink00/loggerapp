@@ -1,6 +1,7 @@
 numpy
 scipy
 influxdb
+nidaqmx
 plotly
 pandas
 dash_core_components

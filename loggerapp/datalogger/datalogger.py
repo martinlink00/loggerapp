@@ -5,12 +5,14 @@
 
 import datalogger.analyser as analyser
 import datalogger.cameras as cam
+import datalogger.trigger as trig
 from datalogger.logsetup import log
 import numpy as np
 from xml.dom import minidom
 import xml.etree.ElementTree as ET
 import ctypes
 import os
+import nidaqmx
 
 
 #################################################################################################
@@ -21,10 +23,10 @@ DLLPATH = os.getcwd() + r'\loggerapp\datalogger\usbtc08.dll'
 
 class Exporter:
     """Abstract Exporter class, capable of exporting data to influx format"""
-    def __init__(self,type,sensor):
+    def __init__(self,type,sensor,trigger):
         self.type=type
-        self.sensor=sensor
-        
+        self.trigger=trigger
+        self.sensor=sensor        
         
     def getdata(self):
         #in subclasses this will give the wanted result in a library
@@ -34,11 +36,9 @@ class Exporter:
     def exporttoinflux(self):
         dat=self.getdata()
         if dat is not None:
-            
             tags={}
-            tags["type"]=self.type
             tags["sensor"]=self.sensor
-            library={"measurement": "log","tags": tags,"fields": dat}
+            library={"measurement": self.type,"tags": tags,"fields": dat}
             exp=[]
             exp.append(library)
             return exp
@@ -88,10 +88,10 @@ class Camexp:
     
 class Beam(Exporter):
     """Class for beam sensors, which have their own ROI settings and fit output datas"""
-    def __init__(self,cam,beam,roiparams):
+    def __init__(self,cam,beam,roiparams,trigger):
             self._cam=cam
             tpe=self._cam.camstr() + " " + str(beam)
-            super(Beam, self).__init__("camera",tpe)
+            super(Beam, self).__init__("camera",tpe,trigger)
             self.latestimage=None
             self.latestroi=None
             self.latestroiparams=None
@@ -115,16 +115,16 @@ class Beam(Exporter):
         if self.getcamman().hasimages:            
             self.IA.image=self._cam.getanimage()            
             try:
-                self.IA.setroi()
-                self.latestroiparams=(self.IA.roiposx,self.IA.roiposy,self.IA.roiimgwidth,self.IA.roiimgheight)
+                self.IA.setroi()                       
             except:
                 log.error('Could not set ROI of sensor %s, %s.' % (self.type,self.sensor))                           
             try:
                 fitdata=self.IA.getfitdata()
-                #first safes the latest image for fit data to be in sync with live cam view
-                self.latestimage=self.IA.image
-                self.latestroi=self.IA.roiimage
-                if not None in fitdata:                    
+                if not None in fitdata:
+                    #first safes the latest image for fit data to be in sync with live cam view
+                    self.latestimage=self.IA.image
+                    self.latestroi=self.IA.roiimage
+                    self.latestroiparams=(self.IA.roiposx,self.IA.roiposy,self.IA.roiimgwidth,self.IA.roiimgheight)
                     #then proceeds to return field values such as fit data and roi params in directionary format
                     lib={}
                     lib["hcenter"]=fitdata[0]
@@ -157,9 +157,9 @@ class Beam(Exporter):
     
 class Temperature(Exporter):
     """Class for temperature sensors"""
-    def __init__(self,dll,handle,tempid,tempsensors,channellist):
+    def __init__(self,dll,handle,tempid,tempsensors,trigger,channellist):
         if handle in tempsensors:
-            super(Temperature, self).__init__("temperature",str(tempid))
+            super(Temperature, self).__init__("temperature",str(tempid),trigger)
             self._dll=dll
             self._handle=handle
             self._channellist=channellist
@@ -188,9 +188,36 @@ class Temperature(Exporter):
             lib[st]=temp[i]
             
         return lib
+
+
+
+
+class NIAnalog(Exporter):
+    """Class for NI analog power sensors"""
+    def __init__(self,dev,trigger,channellist):
+        super(NIAnalog, self).__init__("nianalog",dev,trigger)
+        self._devstring = dev
+        self._channellist=channellist
+        
+        
+    def getdata(self):
+        """Export data field in dictionary format"""
+        lib={}
+        for i in range(0,6):
+            channelstring = self._devstring + "/ai" + str(i)
+            with nidaqmx.Task() as task:
+                task.ai_channels.add_ai_voltage_chan(channelstring)
+                output=task.read()
+            lib[self._channellist[i]]=output
+        return lib
         
     
-         
+    
+    
+    
+    
+    
+    
         
 class Sensormanager:
     """This class reads the config file 'sensorconfig.xml' and initiates all sensors."""
@@ -202,36 +229,48 @@ class Sensormanager:
         
         self._connectedtemp=self._initiatetemplist()
         
+        self._connectedni=self._initiateni()
+        
         self._paramlist=self._paramfromfile()
+        
+        self._triggerconf=self._triggerfromfile()
         
         self._tobeconfigured=self._getmissingsensors()
         
         self._overlyconfigured=self._getnonconnectedsensors()
         
-        if len(self._overlyconfigured)!=0:
-            for ov in self._overlyconfigured:
-                if type(ov) is tuple:
-                    log.info("The connected camera %s %s is mentioned in sensorconfig.xml and yet does not seem to be connected." % ov)
-                    delnow=input("Delete camera %s %s from sensorconfig.xml? (y/n)" % ov)
+        #Rewrite sensorxml file
+    
+        for ov in self._overlyconfigured.keys():
+            if ov=="camera":
+                for cam in self._overlyconfigured[ov]:
+                    log.info("The connected camera %s %s is mentioned in sensorconfig.xml and yet does not seem to be connected." % cam)
+                    delnow=input("Delete camera %s %s from sensorconfig.xml? (y/n)" % cam)
                     if delnow=="y":
-                        self._delcamerasensorfromxml(ov[0],ov[1])
-                        log.info("Camera %s %s was deleted from sensorconfig.xml." % ov)
-                if type(ov) is str:
-                    log.info("The connected temperature sensor %s is mentioned in sensorconfig.xml and yet does not seem to be connected." % ov)
-                    delnow=input("Delete temperature sensor with the handle %s from sensorconfig.xml? (y/n)" % ov)
+                        self._delcamerasensorfromxml(cam[0],cam[1])
+                        log.info("Camera %s %s was deleted from sensorconfig.xml." % cam)
+            if ov=="temperature":
+                for temp in self._overlyconfigured[ov]:
+                    log.info("The connected temperature sensor %s is mentioned in sensorconfig.xml and yet does not seem to be connected." % temp)
+                    delnow=input("Delete temperature sensor with the handle %s from sensorconfig.xml? (y/n)" % temp)
                     if delnow=="y":
-                        self._deltempsensorfromxml(ov)
-                        log.info("Temperature sensor with the handle %s was deleted from sensorconfig.xml." % ov)
+                        self._deltempsensorfromxml(temp)
+                        log.info("Temperature sensor with the handle %s was deleted from sensorconfig.xml." % temp)
+            if ov=="nianalog":
+                for ni in self._overlyconfigured[ov]:
+                    log.info("The connected national instruments sensor %s is mentioned in sensorconfig.xml and yet does not seem to be connected." % ni)
+                    delnow=input("Delete national instruments sensor with the devstring %s from sensorconfig.xml? (y/n)" % ni)
+                    if delnow=="y":
+                        self._delnisensorfromxml(ni)
+                        log.info("National instruments sensor with the handle %s was deleted from sensorconfig.xml." % ni)
 
             
             
-        
-        if len(self._tobeconfigured)!=0:
-            #Rewrite sensorxml file
-            for miss in self._tobeconfigured:
-                if type(miss) is tuple:
-                    log.info("The connected camera %s %s is not yet configured in sensorconfig.xml." % miss)
-                    configurenow=input("Configure %s %s now? (y/n) "% miss)
+        for miss in self._tobeconfigured.keys():
+            if miss=="camera":
+                for cam in self._tobeconfigured[miss]:
+                    log.info("The connected camera %s %s is not yet configured in sensorconfig.xml." % cam)
+                    configurenow=input("Configure %s %s now? (y/n) "% cam)
                     if configurenow=="y":
                         nobeams=input("How many beams are tracked with this camera? ")
                         try:
@@ -242,10 +281,11 @@ class Sensormanager:
                         
                         for beam in beamlist:
                             beamname=input("What name should beam number %i be logged as? " % (beam+1))
-                            self._addcamerasensortoxml(miss[0],miss[1],beamname,"(0,0,100,100)")
-                if type(miss) is str:
-                    log.info("The connected temperature sensor with the handle %s is not yet configured in sensorconfig.xml." % miss)
-                    configurenow=input("Configure %s now? (y/n) " % miss)
+                            self._addcamerasensortoxml(cam[0],cam[1],beamname,"(0,0,100,100)")
+            if miss=="temperature":
+                for temp in self._tobeconfigured[miss]:
+                    log.info("The connected temperature sensor with the handle %s is not yet configured in sensorconfig.xml." % temp)
+                    configurenow=input("Configure %s now? (y/n) " % temp)
                     if configurenow=="y":
                         tempid=input("What name should this sensor be logged as? ")
                         defaultlist=[]
@@ -253,19 +293,30 @@ class Sensormanager:
                             st='Channel '+ str(i+1)
                             defaultlist.append(st)
                         self._addtempsensortoxml(tempid,miss,defaultlist)
+            if miss=="nianalog":
+                for ni in self._tobeconfigured[miss]:
+                    log.info("The connected national instruments sensor with the devstring %s is not yet mentioned in sensorconfig.xml. " % ni)
+                    configurenow=input("Configure %s now? (y/n) " % ni)
+                    if configurenow=="y":
+                        defaultlist=[]
+                        for i in range(0,6):
+                            st='Channel '+ str(i+1)
+                            defaultlist.append(st)
+                        self._addnisensortoxml(ni,defaultlist)
                         
             
         #Reread edited xml file
         self._paramlist=self._paramfromfile()
+        
         self._tobeconfigured=[]
-        self._overlyconfigured=[]
-                    
-            
-                        
+        
+        self._overlyconfigured=[]          
         
         self._connectedcamexp=self._initiatecamexpdict()
         
         self._sensorlist=self._initiatesensorlist()
+        
+        self._sensordict=self._initiatesensordict()
         
         
     
@@ -325,7 +376,7 @@ class Sensormanager:
             id=mydll.usb_tc08_open_unit() #Returns device handle, or 0 if no device was found, or -1 if an error occured
             if id!=-1:
                 if id!=0:
-                    log.info("Temperature sensor of handle %i encountered.")
+                    log.info("Temperature sensor of handle %i encountered." % id)
                     templist.append(str(id))
                     devlist.append(id)
             else:
@@ -348,6 +399,23 @@ class Sensormanager:
         return templist
            
     
+    
+    def _initiateni(self):
+        """Finds all nidaqmx devices and returns device key."""
+        try:
+            system = nidaqmx.system.System.local()
+            devlist = system.devices
+            devstrlist=[]
+            for device in devlist:
+                devstrlist.append(device.name)
+                log.info("NI device with the devstring %s was encountered." % device.name)
+            return devstrlist
+        except:
+            return []
+        
+        
+        
+    
     def _paramfromfile(self):
         """Reads XML file and creates dictionary for parameters."""
         xmldoc = minidom.parse('sensorconfig.xml')
@@ -368,9 +436,31 @@ class Sensormanager:
                 for i in range(0,9):
                     keystr='channel'+ str(i+1)
                     r[keystr]=att[keystr].value
-
+            elif r['type']=='nianalog':
+                r['devstr']=att['devstr'].value
+                for i in range(0,6):
+                    keystr='channel'+ str(i+1)
+                    r[keystr]=att[keystr].value
             paramlist.append(r)
         return paramlist
+    
+    
+    
+    def _triggerfromfile(self):
+        """Reads XML file and returns tuple with (periodic trigger, national trigger)."""
+        xmldoc = minidom.parse('triggerconfig.xml')
+        triggerlist = xmldoc.getElementsByTagName('trigger')
+        triggerdict={}
+        for trigger in triggerlist:
+            triggertype=trigger.getElementsByTagName('type')[0].firstChild.nodeValue
+            att=trigger.getElementsByTagName('parameters')[0].attributes
+            if triggertype=='national':
+                triggerdict['national']=trig.NationalTrigger(att['channel'].value,float(att['threshhold'].value),float(att['timeout'].value))
+            if triggertype=='periodic':
+                triggerdict['periodic']=trig.PeriodicTrigger(float(att['rate'].value),float(att['timeout'].value))
+        return triggerdict
+    
+    
     
     
     def _initiatecamexpdict(self):
@@ -390,16 +480,41 @@ class Sensormanager:
         for par in self._paramlist:
             if par['type']=='camera':
                 roipar=eval(par['roiparams'])
-                ret.append(Beam(self._connectedcamexp[(par['vendor'],par['camid'])],par['beam'],roipar))
+                ret.append(Beam(self._connectedcamexp[(par['vendor'],par['camid'])],par['beam'],roipar,'national'))
             if par['type']=='temperature':
                 channellist=[]
                 for i in range(0,9):
                     keystr='channel' + str(i+1)
                     channellist.append(par[keystr])    
-                ret.append(Temperature(ctypes.windll.LoadLibrary(DLLPATH),par['handle'],par['tempid'],self._connectedtemp,channellist))  
+                ret.append(Temperature(ctypes.windll.LoadLibrary(DLLPATH),par['handle'],par['tempid'],self._connectedtemp,'periodic',channellist))
+            
+            if par['type']=='nianalog':
+                if par["devstr"] in self._connectedni:
+                    channellist=[]
+                    for i in range(0,6):
+                        keystr='channel' + str(i+1)
+                        channellist.append(par[keystr])
+                    ret.append(NIAnalog(par["devstr"],'national',channellist))
+                else:
+                    log.error("The NI device with the devkey %s does not seem to be connected." % par["devstr"])
+                
+        
         return ret
     
+    
+    
+    def _initiatesensordict(self):
+        nationallist=[]
+        periodiclist=[]
         
+        for sensor in self._sensorlist:
+            if sensor.trigger=='national':
+                nationallist.append(sensor)
+            if sensor.trigger=='periodic':
+                periodiclist.append(sensor)
+                
+        return {self._triggerconf['national']:nationallist, self._triggerconf['periodic']:periodiclist}
+    
 
     def getcameraliststring(self):
         """Returns list of strings for all cameras following the logic type + sensor."""
@@ -421,45 +536,86 @@ class Sensormanager:
                 
     def getsensorlist(self):
         return self._sensorlist
-            
+    
+    def getsensordict(self):
+        return self._sensordict    
+    
+    def getperiodiclist(self):
+        l=[]
+        for sensor in self._sensorlist:
+            if sensor.trigger=="periodic":
+                l.append(sensor)
+        return l
     
     
     def _getnonconnectedsensors(self):
         """Get all sensors, which are specified in sensorconfig.xml, yet not connected."""
-        current=[]
-        over=[]
+        currentcams=[]
+        currenttemp=[]
+        currentni=[]
+        overcams=[]
+        overtemp=[]
+        overni=[]
         for par in self._paramlist:
             if par["type"]=="camera":
-                tup = (par["vendor"],par["camid"])
-                current.append(tup)
+                currentcams.append((par["vendor"],par["camid"]))
             if par["type"]=="temperature":
-                current.append(par["handle"])
-        for curr in current:
-            if not curr in self._connectedcams:
-                over.append(curr)
-            if not self._connectedtemp is None:
-                if not curr in self._connectedtemp:
-                    over.append(curr)
-        return over
+                currenttemp.append(par["handle"])
+            if par["type"]=="nianalog":
+                currentni.append(par["devstr"])
+        
+        currentcamsset=set(currentcams)
+        currenttempset=set(currenttemp)
+        currentniset=set(currentni)
+        
+        if not self._connectedcams is None:
+            camintersection=currentcamsset.intersection(self._connectedcams)
+            for cam in list(camintersection):
+                currentcamsset.remove(cam)
+
+        if not self._connectedtemp is None:
+            tempintersection=currenttempset.intersection(self._connectedtemp)
+            for temp in list(tempintersection):
+                currenttempset.remove(temp)
+                
+        if not self._connectedni is None:
+            niintersection=currentniset.intersection(self._connectedni)
+            for ni in list(niintersection):
+                currentniset.remove(ni)
+        
+        missing={"camera":list(currentcamsset),"temperature":list(currenttempset),"nianalog":list(currentniset)}
+        
+        return missing
         
     
     def _getmissingsensors(self):
         """Get all connected sensors, which are not specified in sensorconfig.xml"""
-        current=[]
-        missing=[]
+        currentcams=[]
+        currenttemp=[]
+        currentni=[]
+        missingcams=[]
+        missingtemp=[]
+        missingni=[]
         for par in self._paramlist:
             if par["type"]=="camera":
-                tup = (par["vendor"],par["camid"])
-                current.append(tup)
+                currentcams.append((par["vendor"],par["camid"]))
             if par["type"]=="temperature":
-                current.append(par["handle"])
+                currenttemp.append(par["handle"])
+            if par["type"]=="nianalog":
+                currentni.append(par["devstr"])
+                
         for cam in self._connectedcams:
-            if not cam in current:
-                missing.append(cam)
+            if not cam in currentcams:
+                missingcams.append(cam)
         if not self._connectedtemp is None:
             for temp in self._connectedtemp:
-                if not temp in current:
-                    missing.append(temp)
+                if not temp in currenttemp:
+                    missingtemp.append(temp)
+        if not self._connectedni is None:
+            for ni in self._connectedni:
+                if not ni in currentni:
+                    missingni.append(ni)
+        missing={"camera":missingcams, "temperature":missingtemp,"nianalog":missingni}
         return missing
         
         
@@ -501,7 +657,27 @@ class Sensormanager:
         f=open('sensorconfig.xml','w')
         f.write(new_string)
         f.close()
-        
+       
+    def _addnisensortoxml(self,devstr,channelnamelist):
+        """Edits sensorconfig.xml to add a national instruments sensor with devstring devstr."""
+        et = ET.parse('sensorconfig.xml')
+        new_sensor_tag = ET.SubElement(et.getroot(), 'sensor')
+        type_tag = ET.SubElement(new_sensor_tag, 'type')
+        type_tag.text = "nianalog"
+        param_tag = ET.SubElement(new_sensor_tag, 'parameters')
+        param_tag.attrib = {'devstr':devstr}
+        for i in range(0,6):
+            keystr='channel' + str(i+1)
+            param_tag.attrib[keystr]=channelnamelist[i]
+        rough_string = ET.tostring(et.getroot(), 'utf-8')
+        rough_string = rough_string.replace(b"\n",b"")
+        rough_string = rough_string.replace(b"\t",b"")
+        rough_string = rough_string.replace(b"  ",b"")
+        reparsed = minidom.parseString(rough_string)
+        new_string = reparsed.toprettyxml(indent="\t")
+        f=open('sensorconfig.xml','w')
+        f.write(new_string)
+        f.close()
     
     def _delcamerasensorfromxml(self,vendor,camid):
         """Edits sensorconfig.xml to delete camera with specified params."""
@@ -547,6 +723,26 @@ class Sensormanager:
         f.close()
         
         
+    def _delnisensorfromxml(self,devstr):
+        """Edits sensorconfig.xml to delete national instruments sensor with devstring devstr."""
+        et = ET.parse('sensorconfig.xml')
+        for sensor in et.findall('sensor'):
+            for sub in sensor.findall('type'):
+                if sub.text=='nianalog':
+                    for subel in sensor.findall('parameters'):
+                        if subel.attrib['devstr']==devstr:
+                            et.getroot().remove(sensor)
+
+        rough_string = ET.tostring(et.getroot(), 'utf-8')
+        rough_string = rough_string.replace(b"\n",b"")
+        rough_string = rough_string.replace(b"\t",b"")
+        rough_string = rough_string.replace(b"  ",b"")
+        reparsed = minidom.parseString(rough_string)
+        new_string = reparsed.toprettyxml(indent="\t")
+        f=open('sensorconfig.xml','w')
+        f.write(new_string)
+        f.close()
+        
         
         
     def closeallcams(self):
@@ -554,7 +750,7 @@ class Sensormanager:
         for cam in self._connectedcamexp.values():
             log.debug('Stopping the camera %s.' % cam.camstr())
             cam.stopcam()
-			
+
     def closealltemp(self):
         """Close all temperature sensors in self._connectedtemp."""
         try:
