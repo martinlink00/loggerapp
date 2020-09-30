@@ -178,7 +178,7 @@ class Temperature(Exporter):
         tc_type=ord('K')
         for i in range(1,9):
             mydll.usb_tc08_set_channel(hand,i,tc_type)
-        mydll.usb_tc08_get_single(hand, temp.ctypes.data, overflow_flags.ctypes.data, 0)
+        mydll.usb_tc08_get_single(hand, temp.ctypes.data_as(ctypes.POINTER(ctypes.c_float)), overflow_flags.ctypes.data_as(ctypes.POINTER(ctypes.c_int)), 0)
         
 
         lib={}
