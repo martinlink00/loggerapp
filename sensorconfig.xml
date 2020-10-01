@@ -1,16 +1,16 @@
 <?xml version="1.0" ?>
 <sensors>
 	<sensor>
-		<type>temperature</type>
-		<parameters tempid="temp1" handle="1" channel1="Internal reference" channel2="IGP1" channel3="Cooling MOT" channel4="Rb reservoir" channel5="Laser cooling in" channel6="IGP2" channel7="IGP3" channel8="Exp table air" channel9="To MOT"/>
-	</sensor>
-	<sensor>
-		<type>temperature</type>
-		<parameters tempid="temp2" handle="2" channel1="Internal reference 2" channel2="Z latt board" channel3="Gradient coil/vert offs coil" channel4="Trans offs latt (top)" channel5="Flow box exp table" channel6="Ryd. SHG" channel7="Flow box laser table" channel8="Water for flow box" channel9="Air above table"/>
-	</sensor>
-	<sensor>
 		<type>nianalog</type>
-		<parameters devstr="Dev2" channel1="3D repump" channel2="Cool 3D" channel3="Cool 2D" channel4="2D repump" channel5="Push" channel6="Axial cool 2D"/>
+		<parameters devstr="Dev1" channel1="3D repump" channel2="Cool 3D" channel3="Cool 2D" channel4="2D repump" channel5="Push" channel6="axial cool 2D"/>
+	</sensor>
+	<sensor>
+		<type>temperature</type>
+		<parameters tempid="temp1" handle="1" channel1="Internal reference 2" channel2="Z latt board" channel3="Gradient coil/vert offs coil" channel4="Trans offs latt (top)" channel5="Flow box exp table" channel6="Ryd. SHG" channel7="Flow box laser table" channel8="Water for flow box" channel9="Air above table"/>
+	</sensor>
+	<sensor>
+		<type>temperature</type>
+		<parameters tempid="temp2" handle="2" channel1="Internal reference" channel2="IGP1" channel3="Cooling MOT" channel4="Rb reservoir" channel5="Laser cooling in" channel6="IGP2" channel7="IGP3" channel8="Exp table air" channel9="To MOT"/>
 	</sensor>
 	<sensor>
 		<type>camera</type>
