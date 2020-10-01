@@ -63,11 +63,12 @@ class Camexp:
         return self._cammngr
     
     def getpixelsize(self):
-        camman=self.getcammanager()
-        camman.setactivecam(self._vendor,self._camid)
-        size=camman.pixelsize
-        camman.stop()
-        return camman.pixelsize
+        self._cammngr.setactivecam(self._vendor,self._camid)
+        size=None
+        while size is None:
+            size=self._cammngr.pixelsize
+        self._cammngr.close()
+        return size
     
     def getanimage(self):
         self._cammngr.setactivecam(self._vendor,self._camid)
@@ -76,6 +77,7 @@ class Camexp:
         while img is None:
             img=self._cammngr.getimage()
         self._cammngr.stop()
+        self._cammngr.close()
         return img
     
     def camstr(self):
@@ -319,7 +321,7 @@ class Sensormanager:
         self._overlyconfigured=[]          
         
         self._connectedcamexp=self._initiatecamexpdict()
-        
+                
         self._sensorlist=self._initiatesensorlist()
         
         self._sensordict=self._initiatesensordict()
@@ -769,3 +771,5 @@ class Sensormanager:
             pass
         
 
+
+    
