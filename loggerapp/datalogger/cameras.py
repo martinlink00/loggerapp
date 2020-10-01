@@ -530,7 +530,7 @@ class VrmCamera(Camera):
         ndev = vrm.VRmDWORD()
         self._ce(vrm.VRmUsbCamGetDeviceKeyListSize(byref(ndev)))
         ndev = int(ndev.value)
-        print(ndev)
+        #print(ndev)
         for nn in range(ndev):
             devkey = vrm.POINTER(vrm.VRmDeviceKey)()
             self._ce(vrm.VRmUsbCamGetDeviceKeyListEntry(nn, byref(devkey)))
@@ -1397,8 +1397,8 @@ if __name__ == "__main__":
     cam.findallcams()
 
     cam.open(1)
-    print(cam.gain)
-    print(cam.exposure)
+    #print(cam.gain)
+    #print(cam.exposure)
     cam.startcontacq()
     cam.stopcontacq()
     cam.close()
