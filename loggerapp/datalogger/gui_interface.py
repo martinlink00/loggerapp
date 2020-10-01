@@ -6,10 +6,10 @@
 import numpy as np
 import math
 
-import datalogger.iter as run
-import datalogger.Thread as Thread
-import datalogger.datalogger as dat
-import datalogger.db_interface as db
+import loggerapp.datalogger.iter as run
+import loggerapp.datalogger.Thread as Thread
+import loggerapp.datalogger.datalogger as dat
+import loggerapp.datalogger.db_interface as db
 
 import plotly.graph_objects as go
 import plotly.express as px
@@ -266,10 +266,10 @@ class Camviewer:
         if self._hasactivecam:
             if self._selectedcam!=sensor:
                 self._selectedcam=sensor
-                self.pixelsize=sensor.getcamman().pixelsize
+                self.pixelsize=sensor.IA.pixelsize
         else:
             self._selectedcam=sensor
-            self.pixelsize=sensor.getcamman().pixelsize
+            self.pixelsize=sensor.IA.pixelsize
             self._hasactivecam=True 
                 
                 
