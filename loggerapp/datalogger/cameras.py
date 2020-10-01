@@ -88,11 +88,11 @@ class CameraManager(object):
         for cam in self._cameras:
             if cam.VENDOR == vendor:
                 if self._activecam:
-                    log.debug('Closing camera %s, %s' % (vendor, self._activecam.camid))
+                    #log.debug('Closing camera %s, %s' % (vendor, self._activecam.camid))
                     self._activecam.close()
-                log.debug('Opening camera %s, %s' % (vendor, camid))
+                #log.debug('Opening camera %s, %s' % (vendor, camid))
                 cam.open(camid)
-                log.debug('Setting active camera to %s, %s' % (vendor, camid))
+                #log.debug('Setting active camera to %s, %s' % (vendor, camid))
                 self._activecam = cam
 
     def caminfo(self):
@@ -114,7 +114,7 @@ class CameraManager(object):
     def close(self):
         """Close the active camera."""
         if self._activecam:
-            log.debug('Closing cam')
+            #log.debug('Closing cam')
             self._activecam.close()
             self._activecam = None
         else:
@@ -134,10 +134,10 @@ class CameraManager(object):
     def stop(self):
         """Stop the active camera."""
         if self._activecam:
-            log.debug('Stopping camera')
+            #log.debug('Stopping camera')
             self._activecam.stopcontacq()
             self.isaquiring = False
-            log.debug('Camera stopped')
+            #log.debug('Camera stopped')
         else:
             self.isaquiring = False
             log.error('No camera selected.')
@@ -393,7 +393,7 @@ class VRMThread(threading.Thread):
         self._handle = handle
         self._parent = parent
         self.setDaemon(True)  # important to let the Thread exit at application close.
-        log.debug('VRM thread started')
+        #log.debug('VRM thread started')
 
     def run(self):
         while self.isrunning:
@@ -491,7 +491,7 @@ class VrmCamera(Camera):
         else:
             log.error('Unknown pixel size for %s. Using 1mum.' % self._devkey.contents.mp_product_str.data.decode('utf-8'))
             res =  1.0
-        log.info('Using pixel size %f.' % res)
+        #log.info('Using pixel size %f.' % res)
         return res
 
     @property
@@ -541,13 +541,13 @@ class VrmCamera(Camera):
     def open(self, camid):
         """Open the camera and obtain a camera handle"""
         self._camid = camid
-        log.debug('Try opening cam with camid: %s' % camid)
+        #log.debug('Try opening cam with camid: %s' % camid)
         # get the devkey
         self._devkey = self._getdevkey(camid)
         if not self._devkey.contents.m_busy == 1:
             self._handle = vrm.VRmUsbCamDevice()
             self._ce(vrm.VRmUsbCamOpenDevice(self._devkey, byref(self._handle)))
-            log.debug('Success in opening cam with camid: %s' % camid)
+            #log.debug('Success in opening cam with camid: %s' % camid)
         else:
             log.error('Could not open camera with camid: %s: BUSY' % camid)
 
@@ -572,12 +572,12 @@ class VrmCamera(Camera):
         Put acquired images on in the image queue.
 
         """
-        log.debug('Trying to start camera %s' % self._camid)
+        #log.debug('Trying to start camera %s' % self._camid)
         self._ce(vrm.VRmUsbCamStart(self._handle))
         if self._imagecapturethread is None or not self._imagecapturethread.is_alive():
             self._imagecapturethread = VRMThread(self._imagequeue, self._handle, self)
             self._imagecapturethread.start()
-        log.info('Started camera %s' % self._camid)
+        #log.info('Started camera %s' % self._camid)
 
     def stopcontacq(self):
         """Stop  continuous picture acquisition"""
@@ -586,7 +586,7 @@ class VrmCamera(Camera):
             self._imagecapturethread.join()
             self._imagecapturethread = None
         self._ce(vrm.VRmUsbCamStop(self._handle))
-        log.info('Stopped camera %s' % self._camid)
+        #log.info('Stopped camera %s' % self._camid)
 
     def __del__(self):
         if self._devkey is not None:
@@ -699,7 +699,7 @@ class XiapiCamera(Camera):
         else:
             log.error('Unknown pixel size for {}. Using 5mum.'.format(self._devinfo['name']))
             res =  5.0
-        log.info('Using pixel size %f.' % res)
+        #log.info('Using pixel size %f.' % res)
         return res
 
     @property
@@ -747,12 +747,12 @@ class XiapiCamera(Camera):
 
     def open(self, camid):
         """Open the camera and obtain a camera handle"""
-        log.debug('Try opening cam with camid: %s' % camid)
+        #log.debug('Try opening cam with camid: %s' % camid)
         try:
             self._cam.open_device_by_SN(camid)
             self._camid = camid
             self._devinfo = self._getdevinfo()
-            log.debug('Success in opening cam with camid: %s' % camid)
+            #log.debug('Success in opening cam with camid: %s' % camid)
             self._setupcam()
         except xiapi.Xi_error as e:
             self._camid = None
@@ -798,7 +798,7 @@ class XiapiCamera(Camera):
         Put acquired images on in the image queue.
 
         """
-        log.debug('Trying to start camera %s' % self._camid)
+        #log.debug('Trying to start camera %s' % self._camid)
         self._cam.start_acquisition()
         if self._imagecapturethread is not None:
             log.error("XIMEA ERROR in start_capture: Capture running")
@@ -821,7 +821,7 @@ class XiapiCamera(Camera):
             self._imagecapturethread.stop()
             self._imagecapturethread.join()
             self._imagecapturethread = None
-        log.info('Stopped camera %s' % self._camid)
+        #log.info('Stopped camera %s' % self._camid)
 
     def __del__(self):
         self.close()
@@ -960,7 +960,7 @@ class UEyeCamera(Camera):
         err0, structsensor = self.ueyeapi.is_GetSensorInfo()
         self._ce(err0)
         pixelsize = getattr(structsensor, 'wPixelSize')/100.
-        log.info('Using pixel size %f.' % (pixelsize))
+        #log.info('Using pixel size %f.' % (pixelsize))
         return pixelsize
 
     @property
@@ -1016,13 +1016,13 @@ class UEyeCamera(Camera):
     def open(self, camserial):
         """Open the camera and obtain a camera handle"""
         self._camserial = camserial
-        log.debug('Try opening cam with serial: %s' % camserial)
+        #log.debug('Try opening cam with serial: %s' % camserial)
         # get the devkey
         self._devid, available = self._getdevid(camserial)
         if not int(available) == 1:
             err0, self._handle = self.ueyeapi.is_CreateHandle(self._devid)
             self._ce(err0)
-            log.debug('Success in opening cam with camid: %s' % camserial)
+            #log.debug('Success in opening cam with camid: %s' % camserial)
 
         else:
             log.error('Could not open camera with camid: %s: BUSY' % camserial)
@@ -1037,7 +1037,7 @@ class UEyeCamera(Camera):
         """Close the camera"""
         err0 = self.ueyeapi.dll.is_ExitCamera(c_uint32(self._handle))
         self._ce(err0)
-        log.info('Stopped camera %s' % self._devid)
+        #log.info('Stopped camera %s' % self._devid)
         self._devid = None
         self._handle = None
 
@@ -1048,12 +1048,12 @@ class UEyeCamera(Camera):
         Put acquired images on in the image queue.
 
         """
-        log.debug('Trying to start camera %s' % self._devid)
+        #log.debug('Trying to start camera %s' % self._devid)
         self.ueyeapi.is_InitialiseMemory()
         if self._imagecapturethread is None or not self._imagecapturethread.is_alive():
             self._imagecapturethread = UEyeThread(self._imagequeue, self._handle, self)
             self._imagecapturethread.start()
-        log.info('Started camera %s' % self._devid)
+        #log.info('Started camera %s' % self._devid)
 
     def stopcontacq(self):
         """
@@ -1065,7 +1065,7 @@ class UEyeCamera(Camera):
             self._imagecapturethread.join()
             self._imagecapturethread = None
 
-        log.info('Stopped camera %s' % self._devid)
+        #log.info('Stopped camera %s' % self._devid)
 
     def __del__(self):
         if self._handle is not None:
@@ -1178,7 +1178,7 @@ class VimbaCamera(Camera):
     def pixelsize(self):
         """Return the pixelsize in micrometer of the camera. Non square pixels are not supported."""
         res = 5.86
-        log.info('Using pixel size %f.' % res)
+        #log.info('Using pixel size %f.' % res)
         return res
 
     @property
@@ -1313,7 +1313,7 @@ class DummyCamera(Camera):
     def pixelsize(self):
         """Return the pixelsize in micrometer of the camera. Non square pixels are not supported."""
         res = 5.3
-        log.info('Using pixel size %f.' % res)
+        #log.info('Using pixel size %f.' % res)
         return res
 
     @property
