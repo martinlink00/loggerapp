@@ -6,10 +6,10 @@
 import numpy as np
 import math
 
-import loggerapp.datalogger.iter as run
-import loggerapp.datalogger.Thread as Thread
-import loggerapp.datalogger.datalogger as dat
-import loggerapp.datalogger.db_interface as db
+import datalogger.iter as run
+import datalogger.Thread as Thread
+import datalogger.datalogger as dat
+import datalogger.db_interface as db
 
 import plotly.graph_objects as go
 import plotly.express as px
