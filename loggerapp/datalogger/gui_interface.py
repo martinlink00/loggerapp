@@ -41,8 +41,7 @@ class Guiinterfacelogger:
         """Changes the rate at which periodic sensors are exporting"""
         if self._rate!=rate:
             self._rate=rate
-            for sens in self.sensormngr.getperiodiclist():
-                sens.trigger.setrate(rate)
+            self.sensormngr.setperiodicrate(rate)
         else:
             pass
 
@@ -266,10 +265,10 @@ class Camviewer:
         if self._hasactivecam:
             if self._selectedcam!=sensor:
                 self._selectedcam=sensor
-                self.pixelsize=sensor.getcamman().pixelsize
+                self.pixelsize=sensor.IA.pixelsize
         else:
             self._selectedcam=sensor
-            self.pixelsize=sensor.getcamman().pixelsize
+            self.pixelsize=sensor.IA.pixelsize
             self._hasactivecam=True 
                 
                 

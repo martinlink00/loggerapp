@@ -52,30 +52,38 @@ class Exporter:
 
 class Camexp:
     """Class to connect to cameras"""
-    def __init__(self,vendor,camid,cameras):
+    def __init__(self,vendor,camid,cameraman):
         self._vendor=vendor
         self._camid=camid
-        self._cammngr = cam.CameraManager(cameras)
-        self.startcam()
+        self._cammngr = cameraman
+
         
     
     def getcammanager(self):
         return self._cammngr
+    
+    def getpixelsize(self):
+        camman=self.getcammanager()
+        camman.setactivecam(self._vendor,self._camid)
+        size=camman.pixelsize
+        camman.stop()
+        return camman.pixelsize
+    
     def getanimage(self):
-        return self._cammngr.getimage()
+        self._cammngr.setactivecam(self._vendor,self._camid)
+        self._cammngr.start()
+        img=None
+        while img is None:
+            img=self._cammngr.getimage()
+        self._cammngr.stop()
+        return img
     
     def camstr(self):
         return self._vendor + " " + self._camid
     
-    def selectacam(self):
-        """Select cam in camera manager"""
-        self._cammngr.setactivecam(self._vendor,self._camid)
-    
-    
     def startcam(self):
         """Start the active cam"""
         if not self._cammngr.isaquiring:
-            self.selectacam()
             self._cammngr.start()
             
     def stopcam(self):
@@ -100,11 +108,8 @@ class Beam(Exporter):
             self.IA.roiposy = roiparams[1]
             self.IA.roiimgwidth = roiparams[2]
             self.IA.roiimgheight = roiparams[3]
-            self.IA.pixelsize=self.getcamman().pixelsize
-            if self.getcamman().isaquiring:
-                self.IA.isrecording=True
-            else:
-                log.warning("Camera " + self._cam.camstr() + " is not recording")
+            self.IA.pixelsize=self._cam.getpixelsize()
+
      
     def getcamman(self):
         return self._cam.getcammanager()
@@ -112,8 +117,8 @@ class Beam(Exporter):
                 
     def getdata(self):        
         """Exports data field in dictionary format"""        
-        if self.getcamman().hasimages:            
-            self.IA.image=self._cam.getanimage()            
+        try:           
+            self.IA.image=self._cam.getanimage()
             try:
                 self.IA.setroi()                       
             except:
@@ -148,7 +153,8 @@ class Beam(Exporter):
             except:
                 log.error('Could not aquire fit data of sensor %s, %s.' % (self.type,self.sensor))
                 return None
-        else:
+        except:
+            log.error('Sensor %s, %s could not get image.' % (self.type,self.sensor))
             return None
             
     
@@ -223,7 +229,7 @@ class Sensormanager:
     """This class reads the config file 'sensorconfig.xml' and initiates all sensors."""
     def __init__(self):
         
-        self._camtypes=self._initiatecamlist()
+        self._cameramanager=self._initiatecamman()
         
         self._connectedcams=self._connectedcams()
         
@@ -318,10 +324,12 @@ class Sensormanager:
         
         self._sensordict=self._initiatesensordict()
         
-        
+    def setperiodicrate(self,rate):
+        """Changes export rate of periodic trigger."""
+        self._triggerconf['periodic'].setrate(rate)
     
-    def _initiatecamlist(self):
-        """Finds and initiates all available camera vendors and returns a list of said camtypes."""
+    def _initiatecamman(self):
+        """Finds and initiates all available camera vendors and returns camera manager."""
         cameras = []
         dummycam = cam.DummyCamera()
         cameras.append(dummycam)
@@ -345,12 +353,12 @@ class Sensormanager:
             cameras.append(ueyecam)
         except:
             log.warning('No UEye driver installed')
-        return cameras
+        return cam.CameraManager(cameras)
         
         
     def _connectedcams(self):
         """Finds all connected cameras, and returns list of tuples (vendor,camid)."""
-        mangr=cam.CameraManager(self._camtypes)
+        mangr=self._cameramanager
         a=mangr.connectedcams
         b=[]
         for i in a.keys():
@@ -469,7 +477,7 @@ class Sensormanager:
         for pardic in self._paramlist:
             if pardic['type']=='camera':
                 if not (pardic['vendor'],pardic['camid']) in camexps.keys():
-                    camexps[(pardic['vendor'],pardic['camid'])] = Camexp(pardic['vendor'],pardic['camid'],self._camtypes)
+                    camexps[(pardic['vendor'],pardic['camid'])] = Camexp(pardic['vendor'],pardic['camid'],self._cameramanager)
         return camexps
     
     
