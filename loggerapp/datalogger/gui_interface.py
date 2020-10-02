@@ -41,8 +41,7 @@ class Guiinterfacelogger:
         """Changes the rate at which periodic sensors are exporting"""
         if self._rate!=rate:
             self._rate=rate
-            for sens in self.sensormngr.getperiodiclist():
-                sens.trigger.setrate(rate)
+            self.sensormngr.setperiodicrate(rate)
         else:
             pass
 
