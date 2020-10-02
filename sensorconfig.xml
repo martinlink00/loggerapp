@@ -22,10 +22,10 @@
 	</sensor>
 	<sensor>
 		<type>camera</type>
-		<parameters vendor="vrm" camid="8505429" beam="incoming" roiparams="(80,640,250,300)"/>
+		<parameters vendor="vrm" camid="8505429" beam="incoming" roiparams="(230,260,250,250)"/>
 	</sensor>
 	<sensor>
 		<type>camera</type>
-		<parameters vendor="vrm" camid="8505429" beam="outcoming" roiparams="(320,150,300,300)"/>
+		<parameters vendor="vrm" camid="8505429" beam="outcoming" roiparams="(260,630,250,250)"/>
 	</sensor>
 </sensors>
