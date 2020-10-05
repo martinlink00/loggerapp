@@ -288,8 +288,8 @@ class ImageAnalyser(object):
                 if self.fitdataisrealistic():
                     vc=(self._vfitparams[1]+self._roiposy) * self._pixelsize
                     hc=(self._hfitparams[1]+self._roiposx) * self._pixelsize
-                    lsa=4*np.abs(self._lfitparams[2]) * self._pixelsize
-                    ssa=4*np.abs(self._sfitparams[2]) * self._pixelsize
+                    lsa=2*np.abs(self._lfitparams[2]) * self._pixelsize
+                    ssa=2*np.abs(self._sfitparams[2]) * self._pixelsize
 
 
                     data=[]
