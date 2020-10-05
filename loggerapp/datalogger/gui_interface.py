@@ -85,8 +85,8 @@ class Guiinterfacelogger:
             
             vcenter=vcentermum/pixel
             hcenter=hcentermum/pixel
-            largewaist=largewaistmum/(4*pixel)
-            smallwaist=smallwaistmum/(4*pixel)
+            largewaist=largewaistmum/(2*pixel)
+            smallwaist=smallwaistmum/(2*pixel)
             
             ang=latestdata['angle']
                         
