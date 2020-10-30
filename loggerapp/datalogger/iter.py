@@ -13,7 +13,7 @@ from time import sleep
 
 
 def cycle(sensors,client):
-    #sensors: dictionary of the format {'triggertype':sensorlist}
+    #sensors: dictionary of the format {trigger:sensorlist}
     for trigger in sensors.keys():
         if trigger.checktrigger():
             for sensor in sensors[trigger]:
