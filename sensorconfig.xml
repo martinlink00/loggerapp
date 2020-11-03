@@ -2,7 +2,11 @@
 <sensors>
 	<sensor>
 		<type>nianalog</type>
-		<parameters devstr="Dev1" channel1="3D repump" channel2="Cool 3D" channel3="Cool 2D" channel4="2D repump" channel5="Push" channel6="axial cool 2D"/>
+		<parameters channellist="0,1,2,3,4,5" devstr="Dev1" eich="1" trigger="national" channel0="3D repump" channel1="Cool 3D" channel2="Cool 2D" channel3="2D repump" channel4="Push" channel5="axial cool 2D"/>
+	</sensor>
+	<sensor>
+		<type>nianalog</type>
+		<parameters channellist="20,22,32,21,23,33" devstr="Dev1" eich="1" trigger="periodic" channel20="Bchamb x1" channel22="Bchamb x2" channel32="Bchamb x3" channel21="Bwall x1" channel23="Bwall x2" channel33="Bwall x3"/>
 	</sensor>
 	<sensor>
 		<type>temperature</type>

@@ -1,7 +1,7 @@
 <triggers>
 	<trigger>
 		<type>national</type>
-		<parameters channel="Dev1/ai0" threshhold="3.0" timeout="1.0"/>
+		<parameters channel="Dev1/ai16" threshhold="3.0" timeout="1.0"/>
     </trigger>
 	<trigger>
 		<type>periodic</type>

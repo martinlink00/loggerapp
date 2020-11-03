@@ -44,7 +44,7 @@ LOGGERAPP README
         - For manually editing the xml file:
             - For camera sensors, include the parameters 'vendor', 'camid' (both used to find and connect to the camera) and 'beam' (used to distinguish between multiple beams on one camera) as well as the desired initial 'roiparams' in the format '(x-Position,y-Position,width,height)' (in pixels). The Roiparams do not need to be very exact, since the program will automatically reset the ROI anyways.
             - For temperature sensors, include the parameter 'handle' used by the DLL to connect to each temperature sensor as well as 'tempid', a name that will be used for this specific device in the database, as well as the measurement labels each channel should hold.
-            - For nianalog sensors, include the device string 'devstr', as well as the measurement labels each channel should hold.
+            - For nianalog sensors, include the device string 'devstr', as well as the measurement labels each channel should hold. An eich value, as well as the desired trigger type for the nianalog sensor should be added as well.
     3. Initiate Triggers
         - Currently the two used trigger types for sensor exports are periodic triggering and analog voltage triggering (using national instruments).
         - Initial parameters such as voltage threshhold, trigger channel or periodic export rate (only initial, can be changed in GUI later) can be changed in triggerconfig.xml.
